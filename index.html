@@ -67,6 +67,26 @@
         background: #4a4a4a;
         border: 2px solid #1a1a1a;
       }
+      
+      /* Battle Animations */
+      @keyframes atk-player {
+        0% { transform: translateX(0); }
+        50% { transform: translateX(-40px) scale(1.1); }
+        100% { transform: translateX(0); }
+      }
+      @keyframes atk-enemy {
+        0% { transform: scaleX(-1) translateX(0); }
+        50% { transform: scaleX(-1) translateX(-40px) scale(1.1); }
+        100% { transform: scaleX(-1) translateX(0); }
+      }
+      @keyframes take-dmg {
+        0%, 100% { filter: brightness(1) sepia(0) saturate(1) hue-rotate(0); margin-left: 0; }
+        20%, 60% { filter: brightness(2) sepia(1) saturate(5) hue-rotate(-50deg); margin-left: -10px; }
+        40%, 80% { filter: brightness(2) sepia(1) saturate(5) hue-rotate(-50deg); margin-left: 10px; }
+      }
+      .anim-atk-player { animation: atk-player 0.3s ease-in-out; }
+      .anim-atk-enemy { animation: atk-enemy 0.3s ease-in-out; }
+      .anim-dmg { animation: take-dmg 0.4s linear; }
     </style>
   <script type="importmap">
 {
