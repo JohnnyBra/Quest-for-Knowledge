@@ -25,8 +25,7 @@ async function startServer() {
   app.get('/api/leaderboard', (req, res) => {
     try {
       const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-      // Sort by score (level * 1000 + xp) descending
-      const sorted = data.scores.sort((a: any, b: any) => b.score - a.score).slice(0, 25);
+      const sorted = data.scores.sort((a: any, b: any) => b.score - a.score);
       res.json(sorted);
     } catch (e) {
       res.status(500).json({ error: 'Failed to read leaderboard' });
