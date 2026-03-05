@@ -216,11 +216,11 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
   }, [player.x, player.y, mapData.width, mapData.height, isReady]);
 
   return (
-    <div className="w-full flex justify-center items-start pt-2 pb-0">
+    <div className="w-full h-full flex-1 flex justify-center items-stretch pt-2 pb-0">
       {/* VIEWPORT */}
       <div
         ref={containerRef}
-        className={`relative overflow-hidden border-8 border-[#333] rounded-lg shadow-2xl bg-[#050505] w-full max-w-[600px] h-[55vh] md:h-[500px] transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+        className={`relative overflow-hidden border-4 md:border-8 border-[#111] md:border-[#333] rounded-sm md:rounded-lg shadow-2xl bg-[#050505] w-full flex-1 min-h-[60vh] md:min-h-0 transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* THE WORLD */}
         <div

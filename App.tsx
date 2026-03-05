@@ -664,7 +664,7 @@ export default function App() {
       )}
 
       {/* Main Container */}
-      <div className="w-full max-w-5xl px-2 md:px-4 mt-28 md:mt-32 mb-10 flex flex-col items-center relative z-10">
+      <div className="w-full max-w-6xl px-1 md:px-4 mt-24 md:mt-28 mb-4 flex-1 flex flex-col items-center relative z-10">
 
         {gameState === GameState.START_SCREEN && (
           <div className="text-center space-y-8 animate-fade-in pt-12 flex flex-col items-center">
@@ -707,10 +707,10 @@ export default function App() {
         )}
 
         {gameState === GameState.MAP && (
-          <div className="flex flex-col items-center justify-center w-full">
+          <div className="flex flex-col items-center justify-start w-full flex-1">
             <MapView mapData={mapData} player={player} activeEnemies={activeEnemies} onMove={handleMove} theme={LEVELS[currentLevelIndex].theme} />
             {/* Objective Box */}
-            <div className="mt-4 mx-2 bg-[#2a2a2a] border-4 border-[#4a4a4a] p-2 rounded shadow-lg w-full max-w-md border-t-white/20 z-20">
+            <div className="mt-2 mx-2 bg-[#2a2a2a] border-2 border-[#4a4a4a] py-1 px-3 rounded shadow-lg w-full max-w-md z-20 opacity-80 backdrop-blur-sm hidden md:block">
               <p className="text-[10px] md:text-sm text-gray-200 text-center leading-tight">
                 {mapData.tiles.some(r => r.includes(TileType.BOSS))
                   ? "¡Derrota al Director del Caos para liberar el portal!"
@@ -721,7 +721,7 @@ export default function App() {
         )}
 
         {gameState === GameState.BATTLE && currentEnemy && (
-          <div className="w-full flex justify-center mt-4">
+          <div className="w-full flex-1 flex justify-center mt-2 md:mt-4">
             <Battle
               player={player}
               enemy={currentEnemy}

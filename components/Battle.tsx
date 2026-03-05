@@ -155,10 +155,10 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
   };
 
   return (
-    <div className="flex flex-col h-[75vh] md:h-[600px] w-full max-w-2xl mx-auto border-4 border-[#2d2d2d] bg-[#1a1a1a] rounded-lg shadow-2xl overflow-hidden font-retro">
+    <div className="flex flex-col flex-1 w-full max-w-5xl mx-auto border-4 border-[#111] md:border-[#2d2d2d] bg-[#1a1a1a] rounded-lg shadow-2xl overflow-hidden font-retro min-h-[60vh] md:min-h-[500px]">
 
       {/* 1. SCENE AREA */}
-      <div className="relative h-[40%] md:h-1/2 w-full overflow-hidden">
+      <div className="relative flex-1 min-h-[40vh] md:min-h-0 w-full overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#2e1065_0%,#7c3aed_40%,#db2777_70%,#f59e0b_100%)]"></div>
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-24 h-24 bg-yellow-200 rounded-full blur-sm opacity-90 mix-blend-screen"></div>
         <div className="absolute bottom-0 w-full h-12 bg-[#0f172a] z-0" style={{ clipPath: "polygon(0% 100%, 0% 20%, 15% 35%, 30% 15%, 50% 40%, 70% 20%, 85% 30%, 100% 10%, 100% 100%)" }}></div>
@@ -180,12 +180,12 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
           </div>
         </div>
 
-        <div className={`absolute bottom-2 left-4 md:left-12 z-10 ${enemyAnim === 'anim-atk-enemy' ? 'anim-atk-enemy' : ''} ${enemyAnim === 'anim-dmg' ? 'anim-dmg' : 'animate-bounce-slow'}`}>
-          <img src={enemy.sprite} alt="Enemy" className="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
+        <div className={`absolute bottom-4 left-4 md:left-24 z-10 ${enemyAnim === 'anim-atk-enemy' ? 'anim-atk-enemy' : ''} ${enemyAnim === 'anim-dmg' ? 'anim-dmg' : 'animate-bounce-slow'}`}>
+          <img src={enemy.sprite} alt="Enemy" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
         </div>
 
-        <div className={`absolute bottom-2 right-4 md:right-12 z-10 ${playerAnim} ${playerAnim === '' ? 'animate-bounce-slow' : ''}`}>
-          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif" alt="Player" className="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated' }} />
+        <div className={`absolute bottom-4 right-4 md:right-24 z-10 ${playerAnim} ${playerAnim === '' ? 'animate-bounce-slow' : ''}`}>
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif" alt="Player" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated' }} />
         </div>
 
         {(phase === 'RESULT_PLAYER' || phase === 'RESULT_ENEMY') && (
