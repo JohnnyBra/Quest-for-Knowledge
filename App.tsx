@@ -21,7 +21,12 @@ const INITIAL_PLAYER: Player = {
   stats: {
     attack: 10,
     defense: 0
-  }
+  },
+  score: 0,
+  correctAnswers: 0,
+  incorrectAnswers: 0,
+  superEffectiveAnswers: 0,
+  startTime: Date.now()
 };
 
 export default function App() {
@@ -164,15 +169,27 @@ export default function App() {
   };
 
   const saveScore = async (finalPlayer: Player) => {
-    const score = finalPlayer.level * 1000 + finalPlayer.xp;
+    // Incorporar tiempo transcurrido en el score final
+    const elapsedSeconds = Math.floor((Date.now() - finalPlayer.startTime) / 1000);
+    // Bonus de velocidad: 3000 menos 3 puntos por segundo
+    const timeBonus = Math.max(0, 3000 - (elapsedSeconds * 3));
+    const finalScore = finalPlayer.score + timeBonus;
+
     try {
       await fetch('/api/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: finalPlayer.name,
-          score,
-          level: finalPlayer.level
+          score: finalScore,
+          level: finalPlayer.level,
+          timeBonus,
+          stats: {
+            correct: finalPlayer.correctAnswers,
+            incorrect: finalPlayer.incorrectAnswers,
+            superEffective: finalPlayer.superEffectiveAnswers,
+            timeInSeconds: elapsedSeconds
+          }
         })
       });
     } catch (error) {
@@ -181,6 +198,14 @@ export default function App() {
   };
 
   const startGame = () => {
+    setPlayer(prev => ({
+      ...prev,
+      startTime: Date.now(),
+      score: 0,
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      superEffectiveAnswers: 0
+    }));
     setNarrativeStep('PROLOGUE');
     setGameState(GameState.NARRATIVE);
   };
@@ -424,21 +449,34 @@ export default function App() {
     showNotification(levelData.title);
   };
 
-  const handleBattleVictory = (xpGained: number, remainingHp: number) => {
+  const handleBattleVictory = (xpGained: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number }) => {
     const newXp = player.xp + xpGained;
     const levelUp = newXp >= (player.level * 100);
 
+    let isBoss = false;
+
     if (currentEnemy) {
+      isBoss = !!currentEnemy.isBoss;
       if (currentEnemy.isBoss) {
         const newTiles = mapData.tiles.map(row => [...row]);
         const bossPos = LEVELS[currentLevelIndex].bossPos;
         newTiles[bossPos.y][bossPos.x] = TileType.GRASS;
         setMapData(prev => ({ ...prev, tiles: newTiles }));
-        showNotification("¡JEFE DERROTADO! ¡EL CAMINO ESTÁ LIBRE!");
+        showNotification(`¡JEFE DERROTADO! ¡EL CAMINO ESTÁ LIBRE!`);
       } else {
-        // Remove the specific active enemy
-        setActiveEnemies(prev => prev.filter(e => e.id !== currentEnemy.id));
+        setActiveEnemies(prev => prev.filter(e => e.id !== currentEnemy?.id));
       }
+    }
+
+    // Calcular puntos de la batalla
+    let pointsGained = isBoss ? 2000 : 200;
+    pointsGained += stats.correct * 50;
+    pointsGained += stats.superEffective * 50;
+    pointsGained -= stats.incorrect * 20;
+
+    // Bonus impecable contra jefe
+    if (isBoss && stats.incorrect === 0) {
+      pointsGained += 1000;
     }
 
     setPlayer(prev => {
@@ -450,7 +488,9 @@ export default function App() {
         newMaxHp += 20;
         currentHp = newMaxHp;
         newAttack += 5;
-        showNotification("¡NIVEL SUBIDO! ¡Salud restaurada!");
+        showNotification(`¡NIVEL SUBIDO! ¡Salud restaurada! (+${pointsGained} PTS)`);
+      } else {
+        if (!isBoss) showNotification(`¡Batalla ganada! (+${pointsGained} PTS)`);
       }
 
       return {
@@ -459,7 +499,11 @@ export default function App() {
         level: levelUp ? prev.level + 1 : prev.level,
         maxHp: newMaxHp,
         hp: currentHp,
-        stats: { ...prev.stats, attack: newAttack }
+        stats: { ...prev.stats, attack: newAttack },
+        score: prev.score + pointsGained,
+        correctAnswers: prev.correctAnswers + stats.correct,
+        incorrectAnswers: prev.incorrectAnswers + stats.incorrect,
+        superEffectiveAnswers: prev.superEffectiveAnswers + stats.superEffective
       };
     });
 
@@ -507,6 +551,7 @@ export default function App() {
                 <span>MOCHILA</span>
               </button>
               <span className="text-yellow-200">LVL {player.level}</span>
+              <span className="text-green-300">PTS {player.score}</span>
             </div>
           </div>
 

@@ -55,6 +55,11 @@ export interface Player extends Entity {
     attack: number;
     defense: number;
   };
+  score: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  superEffectiveAnswers: number;
+  startTime: number;
 }
 
 export interface Enemy {

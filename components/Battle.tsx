@@ -6,7 +6,7 @@ import { Calculator, Book, Globe, Heart } from 'lucide-react';
 interface BattleProps {
   player: Player;
   enemy: Enemy;
-  onVictory: (xp: number, remainingHp: number) => void;
+  onVictory: (xp: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number }) => void;
   onDefeat: () => void;
   onHpUpdate: (newHp: number) => void;
 }
@@ -22,6 +22,8 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
   const [playerAnim, setPlayerAnim] = useState('');
   const [enemyAnim, setEnemyAnim] = useState('');
+
+  const [battleStats, setBattleStats] = useState({ correct: 0, incorrect: 0, superEffective: 0 });
 
   const askedQuestionsRef = useRef<string[]>([]);
 
@@ -61,7 +63,12 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
       const variance = (Math.random() * 0.4) + 0.8;
 
       let finalDamage = Math.floor(attackPower * variance);
-      if (isWeakness) finalDamage = Math.floor(finalDamage * 1.5);
+      if (isWeakness) {
+        finalDamage = Math.floor(finalDamage * 1.5);
+        setBattleStats(s => ({ ...s, correct: s.correct + 1, superEffective: s.superEffective + 1 }));
+      } else {
+        setBattleStats(s => ({ ...s, correct: s.correct + 1 }));
+      }
 
       setPlayerAnim('anim-atk-player');
       setTimeout(() => {
@@ -82,6 +89,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
       }, 150);
 
     } else {
+      setBattleStats(s => ({ ...s, incorrect: s.incorrect + 1 }));
       setMessage(`Fallo... La respuesta era: ${question.options[question.correctIndex]}`);
       setPhase('RESULT_PLAYER');
     }
@@ -90,7 +98,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
   const handleContinue = () => {
     if (phase === 'RESULT_PLAYER') {
       if (enemyHp === 0) {
-        onVictory(enemy.isBoss ? 500 : 50, playerHp);
+        onVictory(enemy.isBoss ? 500 : 50, playerHp, battleStats);
       } else {
         setPhase('ENEMY_TURN');
         setMessage(`${enemy.name} ataca...`);
