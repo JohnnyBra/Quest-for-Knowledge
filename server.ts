@@ -35,22 +35,23 @@ async function startServer() {
 
   app.post('/api/score', (req, res) => {
     try {
-      const { name, score, level } = req.body;
+      const { name, score, level, timeBonus, stats } = req.body;
       if (!name || score === undefined) {
         return res.status(400).json({ error: 'Missing name or score' });
       }
 
       const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-      
+
       // Check if user exists and update if score is higher
       const existingIndex = data.scores.findIndex((s: any) => s.name === name);
-      
+      const newEntry = { name, score, level, timeBonus, stats, date: new Date().toISOString() };
+
       if (existingIndex >= 0) {
         if (score > data.scores[existingIndex].score) {
-          data.scores[existingIndex] = { name, score, level, date: new Date().toISOString() };
+          data.scores[existingIndex] = newEntry;
         }
       } else {
-        data.scores.push({ name, score, level, date: new Date().toISOString() });
+        data.scores.push(newEntry);
       }
 
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));

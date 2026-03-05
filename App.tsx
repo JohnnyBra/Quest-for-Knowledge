@@ -7,7 +7,7 @@ import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { NARRATIVE } from './data/narrative';
-import { Sparkles, Skull, ScrollText, Heart, Shield, Sword, Key, Backpack, X, Zap, Star } from 'lucide-react';
+import { Sparkles, Skull, ScrollText, Heart, Shield, Sword, Key, Backpack, X, Zap, Star, LogOut } from 'lucide-react';
 
 const INITIAL_PLAYER: Player = {
   x: LEVELS[0].start.x,
@@ -525,6 +525,13 @@ export default function App() {
     setGameState(GameState.START_SCREEN);
   };
 
+  const handleEndGame = () => {
+    saveScore(player);
+    setPlayer(INITIAL_PLAYER);
+    setGameState(GameState.START_SCREEN);
+    showNotification("Progreso guardado. ¡Hasta pronto!");
+  };
+
   const currentLevelTitle = LEVELS[currentLevelIndex].title;
 
   // XP Logic
@@ -548,7 +555,11 @@ export default function App() {
             <div className="flex gap-3 text-white items-center">
               <button onClick={() => setShowInventory(true)} className="flex items-center gap-1 bg-blue-900 border-2 border-blue-500 px-3 py-1 rounded hover:bg-blue-800 transition-colors shadow-[0_2px_0_rgb(30,58,138)] active:shadow-none active:translate-y-[2px]">
                 <Backpack size={14} />
-                <span>MOCHILA</span>
+                <span className="hidden md:inline">MOCHILA</span>
+              </button>
+              <button onClick={handleEndGame} className="flex items-center gap-1 bg-red-900 border-2 border-red-500 px-3 py-1 rounded hover:bg-red-800 transition-colors shadow-[0_2px_0_rgb(153,27,27)] active:shadow-none active:translate-y-[2px]">
+                <LogOut size={14} />
+                <span className="hidden md:inline">SALIR</span>
               </button>
               <span className="text-yellow-200">LVL {player.level}</span>
               <span className="text-green-300">PTS {player.score}</span>
