@@ -53,12 +53,13 @@ export default function App() {
     playerRef.current = player;
   }, [player]);
 
-  // Initialize Fog of War
+  // Initialize Fog of War (Only on GameState change)
   useEffect(() => {
     if (gameState === GameState.MAP) {
       updateFogOfWar(player.x, player.y);
     }
-  }, [gameState, player.x, player.y]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
 
   // CONSTANT ENEMY MOVEMENT LOGIC WITH AGGRO
   useEffect(() => {
@@ -231,6 +232,7 @@ export default function App() {
 
     // Move Player
     setPlayer(prev => ({ ...prev, x: newX, y: newY }));
+    updateFogOfWar(newX, newY);
     
     // Process Tile Interaction (Chests, Portal)
     handleTileInteraction(targetTile, newX, newY);

@@ -17,18 +17,30 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
   const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
   const [isReady, setIsReady] = useState(false);
 
+  const onMoveRef = useRef(onMove);
+  
+  // Update ref whenever onMove changes
+  useLayoutEffect(() => {
+    onMoveRef.current = onMove;
+  }, [onMove]);
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default scrolling for arrow keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+      
       switch (e.key) {
-        case 'ArrowUp': onMove(0, -1); break;
-        case 'ArrowDown': onMove(0, 1); break;
-        case 'ArrowLeft': onMove(-1, 0); break;
-        case 'ArrowRight': onMove(1, 0); break;
+        case 'ArrowUp': onMoveRef.current(0, -1); break;
+        case 'ArrowDown': onMoveRef.current(0, 1); break;
+        case 'ArrowLeft': onMoveRef.current(-1, 0); break;
+        case 'ArrowRight': onMoveRef.current(1, 0); break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onMove]);
+  }, []); // Empty dependency array = listener attached once!
 
   // Camera Logic
   useLayoutEffect(() => {
@@ -73,7 +85,7 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
         left: x * TILE_SIZE,
         top: y * TILE_SIZE,
     };
-    let className = "absolute flex items-center justify-center transition-all duration-300 ";
+    let className = "absolute flex items-center justify-center transition-all duration-100 ";
     let content = null;
 
     // --- WALLS & SECRET WALLS ---
@@ -145,7 +157,7 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
          return (
              <div 
                 key={`${x}-${y}`} 
-                className="absolute z-40 flex items-center justify-center transition-all duration-500"
+                className="absolute z-40 flex items-center justify-center transition-all duration-200"
                 style={{
                     width: TILE_SIZE,
                     height: TILE_SIZE,
@@ -211,7 +223,7 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
         >
             {/* THE WORLD */}
             <div 
-                className="absolute top-0 left-0 transition-transform duration-300 ease-out"
+                className="absolute top-0 left-0 transition-transform duration-100 ease-out will-change-[transform]"
                 style={{ 
                     width: MAP_WIDTH * TILE_SIZE, 
                     height: MAP_HEIGHT * TILE_SIZE,
@@ -265,7 +277,7 @@ const MapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMov
 
                 {/* Player Sprite */}
                 <div 
-                    className="absolute transition-all duration-200 z-30"
+                    className="absolute transition-all duration-75 z-30 will-change-[left,top]"
                     style={{
                     width: TILE_SIZE,
                     height: TILE_SIZE,
