@@ -14,8 +14,8 @@ const getThemeStyles = (type: TileType, x: number, y: number, theme: LevelTheme)
   let className = "absolute flex items-center justify-center "; // removed transition-all duration-100 to reduce lag
   let content = null;
 
-  // --- WALLS & SECRET WALLS ---
-  if (type === TileType.WALL || type === TileType.SECRET_WALL) {
+  // --- WALLS & SECRET WALLS & TRAPS ---
+  if (type === TileType.WALL || type === TileType.SECRET_WALL || type === TileType.TRAP_WALL) {
     className += "shadow-lg z-10 ";
 
     // Base Wall Style

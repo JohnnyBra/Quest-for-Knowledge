@@ -20,7 +20,8 @@ export enum TileType {
   HIDDEN_ENEMY = 7,
   BOSS = 8,
   LOCKED_DOOR = 9,
-  SECRET_WALL = 10 // New breakable wall
+  SECRET_WALL = 10, // New breakable wall
+  TRAP_WALL = 11 // Invisible trap inside a wall
 }
 
 export enum ItemType {

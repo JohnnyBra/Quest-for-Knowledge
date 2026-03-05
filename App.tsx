@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy } from './types';
-import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS } from './constants';
+import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL } from './constants';
 import MapView from './components/MapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
@@ -239,8 +239,51 @@ export default function App() {
       const newTiles = mapData.tiles.map(row => [...row]);
       newTiles[newY][newX] = TileType.GRASS; // Break the wall
       setMapData(prev => ({ ...prev, tiles: newTiles }));
-      showNotification("¡Has descubierto un pasadizo secreto!");
-      return; // Consume turn breaking wall
+
+      const specialItem = GAME_ITEMS_SPECIAL[Math.floor(Math.random() * GAME_ITEMS_SPECIAL.length)];
+
+      setPlayer(prev => {
+        let newStats = { ...prev.stats };
+        let newHp = prev.hp;
+        let newMaxHp = prev.maxHp;
+
+        if (specialItem.type === ItemType.WEAPON) newStats.attack += specialItem.value;
+        if (specialItem.type === ItemType.ARMOR) { newMaxHp += specialItem.value; newHp += specialItem.value; }
+
+        return {
+          ...prev,
+          hp: newHp,
+          maxHp: newMaxHp,
+          stats: newStats,
+          score: prev.score + 500,
+          inventory: [...prev.inventory, specialItem]
+        };
+      });
+
+      showNotification(`¡Secretos y tesoros! +500 PTS y ${specialItem.name}`);
+      return;
+    }
+
+    // 2.5 Trap Walls (Invisible)
+    if (targetTile === TileType.TRAP_WALL) {
+      const newTiles = mapData.tiles.map(row => [...row]);
+      newTiles[newY][newX] = TileType.GRASS; // Break the wall
+      setMapData(prev => ({ ...prev, tiles: newTiles }));
+
+      showNotification("¡TRAMPA INVISIBLE! Un monstruo letal aparece...");
+
+      const difficultyMultiplier = currentLevelIndex + 2;
+      const trapEnemy: ActiveEnemy = {
+        id: `trap-${Date.now()}`,
+        x: newX,
+        y: newY,
+        templateIndex: Math.floor(Math.random() * ENEMY_TEMPLATES.length),
+        hp: 100 + (difficultyMultiplier * 50),
+        maxHp: 100 + (difficultyMultiplier * 50)
+      };
+
+      triggerBattle(trapEnemy, true);
+      return;
     }
 
     // 3. Enemies (Entities)
@@ -269,7 +312,7 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const triggerBattle = (activeEnemy: ActiveEnemy) => {
+  const triggerBattle = (activeEnemy: ActiveEnemy, isTrap: boolean = false) => {
     const template = ENEMY_TEMPLATES[activeEnemy.templateIndex];
 
     // Determine Sprite URL based on ID
@@ -288,10 +331,10 @@ export default function App() {
 
     setCurrentEnemy({
       id: activeEnemy.id,
-      name: template.name,
+      name: isTrap ? `Guardián Letal: ${template.name}` : template.name,
       hp: activeEnemy.hp,
       maxHp: activeEnemy.maxHp,
-      difficulty: (currentLevelIndex + 1),
+      difficulty: isTrap ? (currentLevelIndex + 2) * 2 : (currentLevelIndex + 1),
       sprite: spriteUrl,
       weakness: template.weakness,
       isBoss: false

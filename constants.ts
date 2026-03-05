@@ -65,6 +65,9 @@ rows.forEach((rowY, index) => {
 MAP_2[12][15] = TileType.SECRET_WALL;
 MAP_2[12][16] = TileType.SECRET_WALL;
 MAP_2[11][15] = TileType.CHEST;
+MAP_2[8][4] = TileType.TRAP_WALL;
+MAP_2[16][24] = TileType.TRAP_WALL;
+MAP_2[4][15] = TileType.TRAP_WALL;
 
 
 // --- LEVEL 3: EL SÓTANO (Tight Snake - 2 tiles high - HARD MODE) ---
@@ -86,6 +89,10 @@ tightRows.forEach((rowY, index) => {
 MAP_3[20][15] = TileType.WALL;
 MAP_3[20][14] = TileType.SECRET_WALL;
 MAP_3[20][13] = TileType.CHEST;
+MAP_3[6][3] = TileType.TRAP_WALL;
+MAP_3[12][28] = TileType.TRAP_WALL;
+MAP_3[15][15] = TileType.TRAP_WALL;
+MAP_3[9][15] = TileType.TRAP_WALL;
 
 
 export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON';
@@ -193,6 +200,33 @@ export const GAME_ITEMS: Item[] = [
     type: ItemType.ARMOR,
     value: 20,
     description: '+20 Vida Máx.',
+    icon: 'shield'
+  }
+];
+
+export const GAME_ITEMS_SPECIAL: Item[] = [
+  {
+    id: 'potion_max',
+    name: 'Elixir de Sabiduría',
+    type: ItemType.POTION,
+    value: 200,
+    description: '+200 Vida Max. Curación total.',
+    icon: 'potion'
+  },
+  {
+    id: 'sword_epic',
+    name: 'Excalibur del Saber',
+    type: ItemType.WEAPON,
+    value: 50,
+    description: '+50 Ataque.',
+    icon: 'sword'
+  },
+  {
+    id: 'armor_epic',
+    name: 'Manto de Erudito',
+    type: ItemType.ARMOR,
+    value: 80,
+    description: '+80 Vida Máx.',
     icon: 'shield'
   }
 ];
