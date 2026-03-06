@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy, Subject } from './types';
-import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL } from './constants';
+import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, getPlayerSpriteUrl } from './constants';
 import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
@@ -58,6 +58,8 @@ export default function App() {
   const [notification, setNotification] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [isEvolving, setIsEvolving] = useState(false);
+  const [showShockwave, setShowShockwave] = useState(false);
 
   // Sync refs
   useEffect(() => {
@@ -649,6 +651,9 @@ export default function App() {
       }
     }
 
+    const nextLevel = levelUp ? player.level + 1 : player.level;
+    const isEvolvingThisTurn = levelUp && (nextLevel === 4 || nextLevel === 7);
+
     // Calcular puntos de la batalla
     let pointsGained = isBoss ? 2000 : 200;
     pointsGained += stats.correct * 50;
@@ -705,6 +710,54 @@ export default function App() {
 
     setCurrentEnemy(null);
     setGameState(GameState.MAP);
+
+    if (isEvolvingThisTurn) {
+      setIsEvolving(true);
+      setTimeout(() => {
+        setIsEvolving(false);
+        applyShockwave();
+      }, 4000);
+    }
+  };
+
+  const applyShockwave = () => {
+     setShowShockwave(true);
+     setTimeout(() => setShowShockwave(false), 2000); // UI visual timeout
+     
+     const px = playerRef.current.x;
+     const py = playerRef.current.y;
+     
+     setActiveEnemies(prev => {
+        return prev.map(enemy => {
+           const dist = Math.max(Math.abs(enemy.x - px), Math.abs(enemy.y - py));
+           // Repeler enemigos en un radio de 5 casillas
+           if (dist <= 5 && dist > 0) {
+              const dx = Math.sign(enemy.x - px);
+              const dy = Math.sign(enemy.y - py);
+              const xDir = dx === 0 && dy === 0 ? 1 : dx;
+              const yDir = dx === 0 && dy === 0 ? 0 : dy;
+              
+              let newX = enemy.x;
+              let newY = enemy.y;
+
+              for(let i=0; i<3; i++) { // Empuja 3 casillas
+                 const testX = newX + xDir;
+                 const testY = newY + yDir;
+                 if(testX >= 0 && testX < MAP_WIDTH && testY >= 0 && testY < MAP_HEIGHT) {
+                    const tile = mapDataRef.current.tiles[testY][testX];
+                    if([TileType.WALL, TileType.SECRET_WALL, TileType.TRAP_WALL, TileType.DOOR_CLOSED, TileType.BOULDER, TileType.BUTTON_PRESSED].includes(tile)) {
+                       break; // Choca contra una pared real, para
+                    }
+                    newX = testX;
+                    newY = testY;
+                 }
+              }
+              return { ...enemy, x: newX, y: newY };
+           }
+           return enemy;
+        });
+     });
+     showNotification("¡ONDA DE SABIDURÍA! Enemigos repelidos.");
   };
 
   const handleBattleHpUpdate = (currentHp: number) => {
@@ -741,6 +794,36 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#111] text-white flex flex-col items-center justify-start font-retro select-none overflow-x-hidden relative">
+
+      {/* EVOLUTION ANIMATION OVERLAY */}
+      {isEvolving && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
+          <h1 className="text-4xl md:text-6xl text-white font-bold mb-8 animate-pulse text-center">
+            ¡LA LUZ DEL SABER TE ENVUELVE!
+          </h1>
+          <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center animate-bounce-slow">
+            <div className="absolute inset-0 bg-yellow-400 rounded-full blur-3xl animate-ping opacity-60"></div>
+            <div className="absolute inset-0 bg-white rounded-full blur-xl animate-pulse opacity-80"></div>
+            <img 
+               src={getPlayerSpriteUrl(player.level)}
+               alt="Evolved Hero" 
+               className="relative z-10 w-full h-full object-contain mix-blend-screen scale-150 drop-shadow-[0_0_30px_rgba(250,204,21,1)]"
+               style={{ imageRendering: 'pixelated' }}
+            />
+          </div>
+          <p className="mt-12 text-2xl text-yellow-300 font-bold animate-bounce tracking-widest uppercase text-center px-4">
+            {player.level >= 7 ? "¡ALCANZAS LA FORMA DEFINITIVA!" : "¡TU HÉROE SE HACE MÁS FUERTE!"}
+          </p>
+        </div>
+      )}
+
+      {/* SHOCKWAVE EFFECT IN MAP */}
+      {showShockwave && gameState === GameState.MAP && (
+         <div className="fixed inset-0 pointer-events-none z-[40] flex items-center justify-center overflow-hidden">
+            <div className="w-10 h-10 border-[20px] border-cyan-400/80 rounded-full animate-ping opacity-0" style={{ animationDuration: '2s' }}></div>
+            <div className="absolute w-10 h-10 border-[10px] border-indigo-500/50 rounded-full animate-ping opacity-0 delay-150" style={{ animationDuration: '2.2s' }}></div>
+         </div>
+      )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
       {(gameState === GameState.MAP || gameState === GameState.BATTLE) && (
