@@ -131,6 +131,43 @@ const generateMap4 = (): TileType[][] => {
   return map;
 };
 
+const generateMap5 = (): TileType[][] => {
+  const map = createEmptyMap();
+  
+  // Create a maze-like structure
+  for (let x = 5; x < 25; x += 4) {
+    for (let y = 3; y < MAP_HEIGHT - 3; y++) {
+      map[y][x] = TileType.WALL;
+    }
+    // Gaps
+    map[Math.floor(MAP_HEIGHT / 2)][x] = TileType.GRASS;
+    map[Math.floor(MAP_HEIGHT / 2) + 1][x] = TileType.GRASS;
+  }
+
+  // Spikes zone
+  for (let x = 6; x < 9; x++) {
+    for (let y = 5; y < 15; y += 2) {
+      map[y][x] = TileType.SPIKE_UP;
+      map[y+1][x] = TileType.SPIKE_DOWN;
+    }
+  }
+
+  // Teleporters
+  map[2][2] = TileType.TELEPORT_PAD;
+  map[MAP_HEIGHT - 3][26] = TileType.TELEPORT_PAD;
+
+  // Key and Locked Door
+  map[MAP_HEIGHT - 3][6] = TileType.KEY_ITEM_TILE;
+  
+  // Wall protecting Boss
+  for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+    map[y][28] = TileType.WALL;
+  }
+  map[10][28] = TileType.LOCKED_DOOR;
+
+  return map;
+};
+
 export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW';
 
 interface LevelConfig {
@@ -183,6 +220,16 @@ export const LEVELS: LevelConfig[] = [
     bossPos: { x: 29, y: 10 },
     portalPos: { x: 30, y: 10 },
     enemyCount: 15,
+    chestCount: 3
+  },
+  {
+    generateMap: generateMap5,
+    start: { x: 2, y: 10 },
+    title: "NIVEL 5: EL CALABOZO DE LAS TRAMPAS",
+    theme: 'DUNGEON',
+    bossPos: { x: 29, y: 10 },
+    portalPos: { x: 30, y: 10 },
+    enemyCount: 20,
     chestCount: 3
   }
 ];

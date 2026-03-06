@@ -114,17 +114,24 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
           const ty = y * TILE_SIZE;
 
           // Background
-          if (tile === TileType.WALL || tile === TileType.SECRET_WALL || tile === TileType.TRAP_WALL || tile === TileType.DOOR_CLOSED) {
-            ctx.fillStyle = tile === TileType.DOOR_CLOSED ? '#334155' : theme === 'CLASSROOM' ? '#7c2d12' : theme === 'GARDEN' ? '#14532d' : theme === 'SNOW' ? '#64748b' : '#1e293b';
+          if (tile === TileType.WALL || tile === TileType.SECRET_WALL || tile === TileType.TRAP_WALL || tile === TileType.DOOR_CLOSED || tile === TileType.LOCKED_DOOR) {
+            ctx.fillStyle = tile === TileType.DOOR_CLOSED ? '#334155' : tile === TileType.LOCKED_DOOR ? '#713f12' : theme === 'CLASSROOM' ? '#7c2d12' : theme === 'GARDEN' ? '#14532d' : theme === 'SNOW' ? '#64748b' : '#1e293b';
             ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            if (tile === TileType.DOOR_CLOSED) {
+            if (tile === TileType.DOOR_CLOSED || tile === TileType.LOCKED_DOOR) {
               ctx.lineWidth = 2;
-              ctx.strokeStyle = '#0f172a';
+              ctx.strokeStyle = tile === TileType.LOCKED_DOOR ? '#ca8a04' : '#0f172a';
               ctx.strokeRect(tx + 4, ty + 4, TILE_SIZE - 8, TILE_SIZE - 8);
-              ctx.fillStyle = '#f59e0b';
+              ctx.fillStyle = tile === TileType.LOCKED_DOOR ? '#eab308' : '#f59e0b';
               ctx.beginPath();
-              ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 4, 0, Math.PI * 2);
-              ctx.fill();
+              
+              if (tile === TileType.LOCKED_DOOR) {
+                 ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2 - 2, 4, 0, Math.PI * 2);
+                 ctx.fill();
+                 ctx.fillRect(tx + TILE_SIZE / 2 - 2, ty + TILE_SIZE / 2, 4, 6);
+              } else {
+                 ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 4, 0, Math.PI * 2);
+                 ctx.fill();
+              }
             } else {
               ctx.fillStyle = 'rgba(0,0,0,0.5)';
               ctx.fillRect(tx, ty + TILE_SIZE - 4, TILE_SIZE, 4); // Fake 3D
@@ -135,7 +142,7 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
             ctx.fillStyle = '#bae6fd';
             ctx.fillRect(tx, ty, TILE_SIZE, 2);
           } else {
-            // Include PATH, GRASS, DOOR_OPEN, BUTTON, BOULDER (background is floor)
+            // Include PATH, GRASS, DOOR_OPEN, BUTTON, BOULDER, SPIKES, TELEPORT (background is floor)
             ctx.fillStyle = theme === 'CLASSROOM' ? '#d97706' : theme === 'GARDEN' ? '#22c55e' : theme === 'SNOW' ? '#e2e8f0' : '#475569';
             ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
             if (tile === TileType.DOOR_OPEN) {
@@ -162,6 +169,48 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
              ctx.beginPath();
              ctx.arc(tx + TILE_SIZE / 2 - 4, ty + TILE_SIZE / 2 - 6, 6, 0, Math.PI * 2);
              ctx.fill();
+          }
+
+          if (tile === TileType.SPIKE_UP) {
+             ctx.fillStyle = '#111827';
+             ctx.fillRect(tx + 4, ty + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+             ctx.fillStyle = '#cbd5e1';
+             ctx.beginPath();
+             ctx.moveTo(tx + 12, ty + TILE_SIZE - 8);
+             ctx.lineTo(tx + TILE_SIZE / 2, ty + 8);
+             ctx.lineTo(tx + TILE_SIZE - 12, ty + TILE_SIZE - 8);
+             ctx.fill();
+          }
+
+          if (tile === TileType.SPIKE_DOWN) {
+             ctx.fillStyle = '#111827';
+             ctx.fillRect(tx + 4, ty + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+             ctx.fillStyle = '#475569';
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+             ctx.fill();
+          }
+
+          if (tile === TileType.TELEPORT_PAD) {
+             ctx.strokeStyle = `rgba(56, 189, 248, ${0.4 + Math.sin(time / 5) * 0.4})`;
+             ctx.lineWidth = 3;
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 12, 0, Math.PI * 2);
+             ctx.stroke();
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+             ctx.stroke();
+          }
+
+          if (tile === TileType.KEY_ITEM_TILE) {
+             ctx.fillStyle = '#fbbf24';
+             const jumpY = Math.sin(time / 5) * 3;
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2 - 4, ty + TILE_SIZE / 2 + jumpY, 4, 0, Math.PI * 2);
+             ctx.fill();
+             ctx.fillRect(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2 - 2 + jumpY, 10, 3);
+             ctx.fillRect(tx + TILE_SIZE / 2 + 5, ty + TILE_SIZE / 2 + 1 + jumpY, 2, 3);
+             ctx.fillRect(tx + TILE_SIZE / 2 + 8, ty + TILE_SIZE / 2 + 1 + jumpY, 2, 3);
           }
 
           // Objects

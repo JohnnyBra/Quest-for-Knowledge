@@ -251,7 +251,7 @@ export default function App() {
           const nextY = finalY + dy;
           if (nextX < 0 || nextX >= MAP_WIDTH || nextY < 0 || nextY >= MAP_HEIGHT) break;
           const nextTile = mapData.tiles[nextY][nextX];
-          if (nextTile === TileType.WALL || nextTile === TileType.SECRET_WALL || nextTile === TileType.BOSS || nextTile === TileType.PORTAL || nextTile === TileType.CHEST || nextTile === TileType.TRAP_WALL || nextTile === TileType.DOOR_CLOSED || nextTile === TileType.BOULDER || nextTile === TileType.BUTTON_PRESSED) break;
+          if ([TileType.WALL, TileType.SECRET_WALL, TileType.BOSS, TileType.PORTAL, TileType.CHEST, TileType.TRAP_WALL, TileType.DOOR_CLOSED, TileType.LOCKED_DOOR, TileType.BOULDER, TileType.BUTTON_PRESSED, TileType.SPIKE_UP].includes(nextTile)) break;
           // check enemy collision
           if (activeEnemies.some(e => e.x === nextX && e.y === nextY)) break;
           
@@ -271,8 +271,28 @@ export default function App() {
 
     // 1.5 Doors
     if (targetTile === TileType.DOOR_CLOSED) {
-       showNotification("La puerta está cerrada por un mecanismo...");
+       showNotification("La puerta está cerrada por un mecanismo mágico...");
        return;
+    }
+
+    if (targetTile === TileType.LOCKED_DOOR) {
+       const keyIndex = player.inventory.findIndex(i => i.type === ItemType.KEY);
+       if (keyIndex !== -1) {
+          const newTiles = mapData.tiles.map(row => [...row]);
+          newTiles[newY][newX] = TileType.DOOR_OPEN;
+          setMapData(prev => ({ ...prev, tiles: newTiles }));
+          
+          setPlayer(prev => {
+             const newInv = [...prev.inventory];
+             newInv.splice(keyIndex, 1);
+             return { ...prev, inventory: newInv };
+          });
+          showNotification("¡Has usado una Llave para abrir la puerta!");
+          return; // Stop here, tile is open next move
+       } else {
+          showNotification("Necesitas una LLAVE para abrir esta puerta.");
+          return;
+       }
     }
 
     // 1.6 Boulders
@@ -392,11 +412,39 @@ export default function App() {
       return;
     }
 
+    // Teleporters
+    if (targetTile === TileType.TELEPORT_PAD) {
+       let found = false;
+       for (let y = 0; y < MAP_HEIGHT; y++) {
+          if(found) break;
+          for (let x = 0; x < MAP_WIDTH; x++) {
+             if (mapData.tiles[y][x] === TileType.TELEPORT_PAD && (x !== newX || y !== newY)) {
+                newX = x;
+                newY = y;
+                found = true;
+                showNotification("¡Te has teletransportado!");
+                break;
+             }
+          }
+       }
+    }
+
     // Move Player
     setPlayer(prev => ({ ...prev, x: newX, y: newY }));
+    
+    // Toggle Spikes Globally on valid move step
+    setMapData(prev => {
+       const newTiles = prev.tiles.map(row => row.map(t => {
+          if (t === TileType.SPIKE_UP) return TileType.SPIKE_DOWN;
+          if (t === TileType.SPIKE_DOWN) return TileType.SPIKE_UP;
+          return t;
+       }));
+       return { ...prev, tiles: newTiles };
+    });
+
     updateFogOfWar(newX, newY);
 
-    // Process Tile Interaction (Chests, Portal)
+    // Process Tile Interaction (Chests, Portal, SPIKE_UP, KEY)
     handleTileInteraction(targetTile, newX, newY);
   };
 
@@ -437,10 +485,46 @@ export default function App() {
   };
 
   const handleTileInteraction = async (tile: TileType, x: number, y: number) => {
+    // We already moved to the tile
+    if (tile === TileType.SPIKE_UP || tile === TileType.SPIKE_DOWN) {
+      // The toggle happened in handleMove *before* this check, so targetTile was read BEFORE toggle.
+      // Wait, targetTile is passed to this function. It holds the pre-toggled state!
+      // If we stepped on SPIKE_UP and it became SPIKE_DOWN, we still take damage because it WAS UP when we stepped.
+      if (tile === TileType.SPIKE_UP) {
+         setPlayer(prev => {
+            const currentHp = Math.max(0, prev.hp - 15);
+            if (currentHp === 0) {
+               setTimeout(handleDefeat, 500);
+            }
+            return { ...prev, hp: currentHp };
+         });
+         showNotification("¡Ouch! Has pisado unos pinchos (-15 HP)");
+      }
+    }
+
+    if (tile === TileType.KEY_ITEM_TILE) {
+       const newTiles = mapData.tiles.map(row => [...row]);
+       newTiles[y][x] = TileType.GRASS;
+       // We MUST use the updater function for toggling safely too, but Tile interaction sets state manually. Let's make sure it doesn't revert toggles. We will update `setMapData(prev => ...)` instead of breaking it.
+       setMapData(prev => {
+          const res = prev.tiles.map(r => [...r]);
+          res[y][x] = TileType.GRASS;
+          return { ...prev, tiles: res };
+       });
+
+       const keyItem = GAME_ITEMS.find(i => i.type === ItemType.KEY);
+       if (keyItem) {
+          setPlayer(prev => ({ ...prev, inventory: [...prev.inventory, keyItem] }));
+          showNotification("¡Has encontrado una LLAVE MAESTRA!");
+       }
+    }
+
     if (tile === TileType.CHEST) {
-      const newTiles = mapData.tiles.map(row => [...row]);
-      newTiles[y][x] = TileType.GRASS;
-      setMapData(prev => ({ ...prev, tiles: newTiles }));
+      setMapData(prev => {
+         const res = prev.tiles.map(r => [...r]);
+         res[y][x] = TileType.GRASS;
+         return { ...prev, tiles: res };
+      });
 
       // 25% chance for a Mimic
       if (Math.random() < 0.25) {

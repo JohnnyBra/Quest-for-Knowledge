@@ -27,7 +27,11 @@ export enum TileType {
   BUTTON = 14, // Pressure plate
   BUTTON_PRESSED = 15, // Pressure plate with boulder on it
   DOOR_CLOSED = 16, // Blocking door
-  DOOR_OPEN = 17 // Passed door
+  DOOR_OPEN = 17, // Passed door
+  SPIKE_UP = 18, // Dangerous spike
+  SPIKE_DOWN = 19, // Safe spike, alternates when moving
+  TELEPORT_PAD = 20, // Teleport to another pad
+  KEY_ITEM_TILE = 21 // A key sitting on the floor
 }
 
 export enum ItemType {
