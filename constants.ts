@@ -1,5 +1,11 @@
 import { TileType, Subject, Item, ItemType } from './types';
 
+export const getPlayerSpriteUrl = (level: number) => {
+  if (level >= 7) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/445.gif"; // Garchomp
+  if (level >= 4) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/257.gif"; // Blaziken
+  return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif"; // Gallade
+};
+
 export const TILE_SIZE = 48; // pixels
 export const MAP_WIDTH = 32;
 export const MAP_HEIGHT = 22;
@@ -200,7 +206,13 @@ export const ENEMY_TEMPLATES = [
   { name: "Mago del Tiempo", weakness: Subject.KNOWLEDGE, spriteId: "wizard", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/65.gif", description: "Intenta confundirte con fechas históricas erróneas y capitales de países perdidos." },
   { name: "Árbol Engañoso", weakness: Subject.KNOWLEDGE, spriteId: "tree", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/185.gif", description: "Finge ser una planta inofensiva, pero está lleno de preguntas sobre la fotosíntesis." },
   { name: "Sabueso Infernal", weakness: Subject.MATH, spriteId: "hound", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/229.gif", description: "Un perro fiero que persigue a los que no se saben la tabla del 7." },
-  { name: "Mimo del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/122.gif", description: "Un mimo mudo que reta tus habilidades para identificar sinónimos y antónimos." }
+  { name: "Mimo del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/122.gif", description: "Un mimo mudo que reta tus habilidades para identificar sinónimos y antónimos." },
+
+  // Level 2+ Weaknesses (English & PE)
+  { name: "Libro de Gramática Vivo", weakness: Subject.ENGLISH, spriteId: "english1", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/201.gif", description: "Mastica verbos irregulares y te escupe condicionales en inglés." },
+  { name: "Tetera Espectral", weakness: Subject.ENGLISH, spriteId: "english2", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/854.gif", description: "Una tetera británica furiosa que exige la hora exacta en inglés." },
+  { name: "Zapatilla Veloz", weakness: Subject.PHYSICAL_ED, spriteId: "pe1", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/106.gif", description: "Una zapatilla de deporte poseída que no para de hacer sprints." },
+  { name: "Balón Prisionero", weakness: Subject.PHYSICAL_ED, spriteId: "pe2", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/100.gif", description: "Lanza balonazos a quienes no conocen las reglas del juego y el calentamiento." }
 ];
 
 export const BOSS_TEMPLATE = {

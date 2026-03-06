@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, Enemy, Question, Subject } from '../types';
 import { generateEducationalContent } from '../services/geminiService';
-import { Calculator, Book, Globe, Heart } from 'lucide-react';
+import { Calculator, Book, Globe, Heart, MessageCircle, Dumbbell } from 'lucide-react';
+import { getPlayerSpriteUrl } from '../constants';
 
 interface BattleProps {
   player: Player;
@@ -247,7 +248,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         </div>
 
         <div className={`absolute bottom-4 right-4 md:right-24 z-10 ${playerAnim} ${playerAnim === '' ? 'animate-bounce-slow' : ''}`}>
-          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif" alt="Player" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated' }} />
+          <img src={getPlayerSpriteUrl(player.level)} alt="Player" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated' }} />
         </div>
 
         {(phase === 'RESULT_PLAYER' || phase === 'RESULT_ENEMY') && (
@@ -280,7 +281,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
       <div className="flex-1 bg-[#222] p-3 flex flex-col justify-center overflow-hidden">
 
         {phase === 'SELECT_SUBJECT' && (
-          <div className="grid grid-cols-3 gap-2 md:gap-3 h-full max-h-[180px]">
+          <div className={`grid ${player.level >= 7 ? 'grid-cols-5' : player.level >= 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-2 md:gap-3 h-full max-h-[180px]`}>
             <button onClick={() => handleSubjectSelect(Subject.MATH)} className="bg-gradient-to-b from-amber-600 to-amber-800 border-2 border-amber-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(146,64,14)] active:shadow-none active:translate-y-[4px] group">
               <Calculator className="text-amber-200" size={24} />
               <span className="text-[8px] md:text-[10px] font-bold text-amber-100 uppercase text-center">Matemáticas</span>
@@ -295,6 +296,20 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
               <Globe className="text-emerald-200" size={24} />
               <span className="text-[8px] md:text-[10px] font-bold text-emerald-100 uppercase text-center">C. del Medio</span>
             </button>
+
+            {player.level >= 4 && (
+              <button onClick={() => handleSubjectSelect(Subject.ENGLISH)} className="bg-gradient-to-b from-indigo-700 to-indigo-900 border-2 border-indigo-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(49,46,129)] active:shadow-none active:translate-y-[4px] group">
+                <MessageCircle className="text-indigo-200" size={24} />
+                <span className="text-[8px] md:text-[10px] font-bold text-indigo-100 uppercase text-center">Inglés</span>
+              </button>
+            )}
+
+            {player.level >= 7 && (
+              <button onClick={() => handleSubjectSelect(Subject.PHYSICAL_ED)} className="bg-gradient-to-b from-orange-700 to-orange-900 border-2 border-orange-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(124,45,18)] active:shadow-none active:translate-y-[4px] group">
+                <Dumbbell className="text-orange-200" size={24} />
+                <span className="text-[8px] md:text-[10px] font-bold text-orange-100 uppercase text-center">Ed. Física</span>
+              </button>
+            )}
           </div>
         )}
 

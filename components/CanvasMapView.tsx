@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { TileType, Player, GameMap, ActiveEnemy } from '../types';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, LevelTheme, ENEMY_TEMPLATES } from '../constants';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, LevelTheme, ENEMY_TEMPLATES, getPlayerSpriteUrl } from '../constants';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MapViewProps {
@@ -36,8 +36,7 @@ const getImage = (url: string) => {
   return img;
 };
 
-// Player Image
-const HERO_SPRITE = getImage("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif");
+// Static Boss Sprite
 const BOSS_SPRITE = getImage("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif");
 
 const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMove, theme }) => {
@@ -222,8 +221,9 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
       // Draw Hero
       const heroTx = player.x * TILE_SIZE;
       const heroTy = player.y * TILE_SIZE;
-      if (HERO_SPRITE.complete && HERO_SPRITE.naturalWidth !== 0) {
-         ctx.drawImage(HERO_SPRITE, heroTx - 8, heroTy - 16, TILE_SIZE + 16, TILE_SIZE + 16);
+      const heroImg = getImage(getPlayerSpriteUrl(player.level));
+      if (heroImg.complete && heroImg.naturalWidth !== 0) {
+         ctx.drawImage(heroImg, heroTx - 8, heroTy - 16, TILE_SIZE + 16, TILE_SIZE + 16);
       } else {
          ctx.fillStyle = 'blue';
          ctx.fillRect(heroTx + 8, heroTy + 8, 32, 32);

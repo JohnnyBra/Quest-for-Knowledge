@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy } from './types';
+import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy, Subject } from './types';
 import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL } from './constants';
 import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
@@ -361,11 +361,14 @@ export default function App() {
       showNotification("¡TRAMPA INVISIBLE! Un monstruo letal aparece...");
 
       const difficultyMultiplier = currentLevelIndex + 2;
+      const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => currentLevelIndex > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
+      const templateIndex = validTemplates[Math.floor(Math.random() * validTemplates.length)].i;
+
       const trapEnemy: ActiveEnemy = {
         id: `trap-${Date.now()}`,
         x: newX,
         y: newY,
-        templateIndex: Math.floor(Math.random() * ENEMY_TEMPLATES.length),
+        templateIndex: templateIndex,
         hp: 100 + (difficultyMultiplier * 50),
         maxHp: 100 + (difficultyMultiplier * 50)
       };
@@ -441,11 +444,12 @@ export default function App() {
       if (Math.random() < 0.25) {
          showNotification("¡OH NO! ¡EL COFRE ERA UN MIMIC!");
          const difficultyMultiplier = currentLevelIndex + 2;
+         const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => currentLevelIndex > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
          const mimicEnemy: ActiveEnemy = {
            id: `mimic-${Date.now()}`,
            x,
            y,
-           templateIndex: Math.floor(Math.random() * ENEMY_TEMPLATES.length), // Reusing base enemies as proxy for mimics stats
+           templateIndex: validTemplates[Math.floor(Math.random() * validTemplates.length)].i,
            hp: 80 + (difficultyMultiplier * 60),
            maxHp: 80 + (difficultyMultiplier * 60)
          };
@@ -581,7 +585,8 @@ export default function App() {
     for (let i = 0; i < levelData.enemyCount; i++) {
       if (spawnIndex < validSpawns.length) {
         const { x, y } = validSpawns[spawnIndex];
-        const templateIdx = Math.floor(Math.random() * ENEMY_TEMPLATES.length);
+        const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => index > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
+        const templateIdx = validTemplates[Math.floor(Math.random() * validTemplates.length)].i;
         const difficultyMultiplier = index + 1;
 
         newActiveEnemies.push({

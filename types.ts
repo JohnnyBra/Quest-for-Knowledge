@@ -112,5 +112,7 @@ export interface Question {
 export enum Subject {
   MATH = "Matemáticas",
   LANGUAGE = "Lengua",
-  KNOWLEDGE = "C. del Medio"
+  KNOWLEDGE = "C. del Medio",
+  ENGLISH = "Inglés",
+  PHYSICAL_ED = "Ed. Física"
 }
