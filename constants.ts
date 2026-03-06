@@ -22,83 +22,70 @@ const createEmptyMap = (): TileType[][] => {
   return map;
 };
 
-// --- LEVEL 1: LA BIBLIOTECA (Vertical Snake - 3 tiles wide) ---
-const MAP_1 = createEmptyMap();
+// --- PROCEDURAL GENERATORS ---
+const generateMap1 = (): TileType[][] => {
+  const map = createEmptyMap();
+  const cols = [4, 8, 12, 16, 20, 24, 28];
+  
+  cols.forEach(colX => {
+    // A single random gap of size 4 in each column
+    const gapStart = 1 + Math.floor(Math.random() * (MAP_HEIGHT - 6));
+    for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+      if (y < gapStart || y > gapStart + 3) {
+        map[y][colX] = Math.random() < 0.05 ? TileType.SECRET_WALL : TileType.WALL;
+      }
+    }
+  });
+  return map;
+};
 
-// Columns of books at x = 4, 8, 12, 16, 20, 24, 28
-const cols = [4, 8, 12, 16, 20, 24, 28];
-cols.forEach((colX, index) => {
-  for (let y = 1; y < MAP_HEIGHT - 1; y++) {
-    const isGap = index % 2 === 0
-      ? y >= MAP_HEIGHT - 4 // Gap at bottom
-      : y <= 3;             // Gap at top
-
-    if (!isGap) {
-      MAP_1[y][colX] = TileType.WALL;
+const generateMap2 = (): TileType[][] => {
+  const map = createEmptyMap();
+  // Transmute to ICE
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      if (map[y][x] === TileType.GRASS) {
+        map[y][x] = TileType.ICE;
+      }
     }
   }
-});
 
-MAP_1[1][1] = TileType.CHEST;
-MAP_1[2][1] = TileType.SECRET_WALL;
-MAP_1[2][2] = TileType.WALL;
-
-
-// --- LEVEL 2: EL JARDÍN (Horizontal Snake - 3 tiles high) ---
-const MAP_2 = createEmptyMap();
-
-const rows = [4, 8, 12, 16, 20];
-rows.forEach((rowY, index) => {
-  if (rowY >= MAP_HEIGHT - 1) return;
-
-  for (let x = 1; x < MAP_WIDTH - 1; x++) {
-    const isGap = index % 2 === 0
-      ? x >= MAP_WIDTH - 4
-      : x <= 3;
-
-    if (!isGap) {
-      MAP_2[rowY][x] = TileType.WALL;
+  const rows = [4, 8, 12, 16, 20];
+  rows.forEach(rowY => {
+    if (rowY >= MAP_HEIGHT - 1) return;
+    // A single random gap of size 4 in each row
+    const gapStart = 1 + Math.floor(Math.random() * (MAP_WIDTH - 6));
+    for (let x = 1; x < MAP_WIDTH - 1; x++) {
+      if (x < gapStart || x > gapStart + 3) {
+        map[rowY][x] = Math.random() < 0.05 ? TileType.TRAP_WALL : TileType.WALL;
+      }
     }
-  }
-});
+  });
+  return map;
+};
 
-MAP_2[12][15] = TileType.SECRET_WALL;
-MAP_2[12][16] = TileType.SECRET_WALL;
-MAP_2[11][15] = TileType.CHEST;
-MAP_2[8][4] = TileType.TRAP_WALL;
-MAP_2[16][24] = TileType.TRAP_WALL;
-MAP_2[4][15] = TileType.TRAP_WALL;
-
-
-// --- LEVEL 3: EL SÓTANO (Tight Snake - 2 tiles high - HARD MODE) ---
-const MAP_3 = createEmptyMap();
-
-const tightRows = [3, 6, 9, 12, 15, 18];
-tightRows.forEach((rowY, index) => {
-  for (let x = 1; x < MAP_WIDTH - 1; x++) {
-    const isGap = index % 2 === 0
-      ? x >= MAP_WIDTH - 3 // Gap Right
-      : x <= 2;            // Gap Left
-
-    if (!isGap) {
-      MAP_3[rowY][x] = TileType.WALL;
+const generateMap3 = (): TileType[][] => {
+  const map = createEmptyMap();
+  const tightRows = [3, 6, 9, 12, 15, 18];
+  
+  tightRows.forEach(rowY => {
+    // Two random gaps of size 3 in each row for a maze-like experience
+    const gap1 = 1 + Math.floor(Math.random() * (MAP_WIDTH / 2 - 4));
+    const gap2 = Math.floor(MAP_WIDTH / 2) + Math.floor(Math.random() * (MAP_WIDTH / 2 - 4));
+    for (let x = 1; x < MAP_WIDTH - 1; x++) {
+      const isGap = (x >= gap1 && x <= gap1 + 2) || (x >= gap2 && x <= gap2 + 2);
+      if (!isGap) {
+        map[rowY][x] = Math.random() < 0.1 ? TileType.SECRET_WALL : TileType.WALL;
+      }
     }
-  }
-});
+  });
+  return map;
+};
 
-MAP_3[20][15] = TileType.WALL;
-MAP_3[20][14] = TileType.SECRET_WALL;
-MAP_3[20][13] = TileType.CHEST;
-MAP_3[6][3] = TileType.TRAP_WALL;
-MAP_3[12][28] = TileType.TRAP_WALL;
-MAP_3[15][15] = TileType.TRAP_WALL;
-MAP_3[9][15] = TileType.TRAP_WALL;
-
-
-export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON';
+export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW';
 
 interface LevelConfig {
-  map: TileType[][];
+  generateMap: () => TileType[][];
   start: { x: number, y: number };
   title: string;
   theme: LevelTheme;
@@ -110,55 +97,57 @@ interface LevelConfig {
 
 export const LEVELS: LevelConfig[] = [
   {
-    map: MAP_1,
+    generateMap: generateMap1,
     start: { x: 15, y: 11 },
     title: "NIVEL 1: LA BIBLIOTECA PERDIDA",
     theme: 'CLASSROOM',
     bossPos: { x: 30, y: 20 },
     portalPos: { x: 30, y: 21 },
-    enemyCount: 20, // Increased from 12
+    enemyCount: 20,
     chestCount: 2
   },
   {
-    map: MAP_2,
+    generateMap: generateMap2,
     start: { x: 16, y: 10 },
-    title: "NIVEL 2: EL PATIO DEL OLVIDO",
-    theme: 'GARDEN',
+    title: "NIVEL 2: EL PATIO HELADO (¡Resbala!)",
+    theme: 'SNOW',
     bossPos: { x: 1, y: 18 },
     portalPos: { x: 30, y: 19 },
-    enemyCount: 28, // Increased from 15
+    enemyCount: 28,
     chestCount: 3
   },
   {
-    map: MAP_3,
+    generateMap: generateMap3,
     start: { x: 16, y: 10 },
     title: "NIVEL 3: EL SÓTANO DEL CAOS",
     theme: 'DUNGEON',
     bossPos: { x: 3, y: 20 },
     portalPos: { x: 30, y: 20 },
-    enemyCount: 40, // Increased from 20 (Very crowded!)
+    enemyCount: 40,
     chestCount: 4
   }
 ];
 
 export const ENEMY_TEMPLATES = [
   // Original Enemies
-  { name: "Goblin Numérico", weakness: Subject.LANGUAGE, spriteId: "goblin" },
-  { name: "Ogro de las Letras", weakness: Subject.MATH, spriteId: "ogre" },
-  { name: "Limo Tóxico", weakness: Subject.KNOWLEDGE, spriteId: "slime" },
-  { name: "Esqueleto Confuso", weakness: Subject.KNOWLEDGE, spriteId: "skeleton" },
+  { name: "Goblin Numérico", weakness: Subject.LANGUAGE, spriteId: "goblin", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/302.gif", description: "Un pequeño pero molesto goblin que te ataca con fracciones y sumas." },
+  { name: "Ogro de las Letras", weakness: Subject.MATH, spriteId: "ogre", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/68.gif", description: "Un enorme ogro que lanza verbos irregulares y faltas de ortografía." },
+  { name: "Limo Tóxico", weakness: Subject.KNOWLEDGE, spriteId: "slime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/88.gif", description: "Un residuo radiactivo que no sabe reciclar ni conoce el ciclo del agua." },
+  { name: "Esqueleto Confuso", weakness: Subject.KNOWLEDGE, spriteId: "skeleton", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/105.gif", description: "Un esqueleto antiguo que ha olvidado de dónde vienen sus huesos." },
 
   // New Enemies
-  { name: "Murciélago de la Duda", weakness: Subject.MATH, spriteId: "bat" },
-  { name: "Fantasma de la Ignorancia", weakness: Subject.LANGUAGE, spriteId: "ghost" },
-  { name: "Serpiente Silbante", weakness: Subject.KNOWLEDGE, spriteId: "snake" },
-  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight" }
+  { name: "Murciélago de la Duda", weakness: Subject.MATH, spriteId: "bat", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/41.gif", description: "En la oscuridad de la cueva, este murciélago se alimenta de tus dudas en las multiplicaciones." },
+  { name: "Fantasma de la Ignorancia", weakness: Subject.LANGUAGE, spriteId: "ghost", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/92.gif", description: "Un ente aterrador que susurra palabras mal escritas para confundirte." },
+  { name: "Serpiente Silbante", weakness: Subject.KNOWLEDGE, spriteId: "snake", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/23.gif", description: "Es rápida y venenosa, pero una buena comprensión del ecosistema puede detenerla." },
+  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/625.gif", description: "Un caballero acorazado con geometría; solo un buen matemático puede abrir una brecha en su armadura." }
 ];
 
 export const BOSS_TEMPLATE = {
   name: "Director del Caos",
   weakness: Subject.MATH,
-  spriteId: "boss"
+  spriteId: "boss",
+  spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif",
+  description: "El enemigo definitivo de la escuela, se dice que su poder proviene del fracaso escolar."
 };
 
 export const GAME_ITEMS: Item[] = [
@@ -201,6 +190,14 @@ export const GAME_ITEMS: Item[] = [
     value: 20,
     description: '+20 Vida Máx.',
     icon: 'shield'
+  },
+  {
+    id: 'bomb_basic',
+    name: 'Bomba de Humo',
+    type: ItemType.BOMB,
+    value: 1,
+    description: 'Destruye muros cercanos o revela secretos.',
+    icon: 'bomb'
   }
 ];
 

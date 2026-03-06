@@ -6,7 +6,7 @@ import { Calculator, Book, Globe, Heart } from 'lucide-react';
 interface BattleProps {
   player: Player;
   enemy: Enemy;
-  onVictory: (xp: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number }) => void;
+  onVictory: (xp: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number, timeBonus: number }) => void;
   onDefeat: () => void;
   onHpUpdate: (newHp: number) => void;
 }
@@ -23,9 +23,10 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
   const [playerAnim, setPlayerAnim] = useState('');
   const [enemyAnim, setEnemyAnim] = useState('');
 
-  const [battleStats, setBattleStats] = useState({ correct: 0, incorrect: 0, superEffective: 0 });
+  const [timeLeft, setTimeLeft] = useState(15);
+  const maxTime = 15;
 
-  const askedQuestionsRef = useRef<string[]>([]);
+  const [battleStats, setBattleStats] = useState({ correct: 0, incorrect: 0, superEffective: 0, timeBonus: 0 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,18 +36,34 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     return () => clearTimeout(timer);
   }, []);
 
+  // ATB Timer
+  useEffect(() => {
+    if (phase === 'ANSWERING') {
+      const interval = setInterval(() => {
+        setTimeLeft(t => {
+          if (t <= 1) {
+            clearInterval(interval);
+            handleAnswer(-1, true);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [phase]);
+
   const handleSubjectSelect = async (subject: Subject) => {
     setPhase('GENERATING_QUESTION');
     setMessage(`Cargando pregunta de ${subject}...`);
     try {
       const q = await generateEducationalContent(
         enemy.isBoss ? 'boss' : 'combat',
-        subject,
-        askedQuestionsRef.current
+        subject
       );
       setQuestion(q);
-      askedQuestionsRef.current.push(q.text);
       setPhase('ANSWERING');
+      setTimeLeft(maxTime);
       setMessage(q.text);
     } catch (e) {
       setPhase('SELECT_SUBJECT');
@@ -54,20 +71,23 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     }
   };
 
-  const handleAnswer = (index: number) => {
+  const handleAnswer = (index: number, isTimeout: boolean = false) => {
     if (!question) return;
 
-    if (index === question.correctIndex) {
+    if (!isTimeout && index === question.correctIndex) {
       const attackPower = player.stats.attack;
       const isWeakness = question.subject === enemy.weakness;
       const variance = (Math.random() * 0.4) + 0.8;
 
       let finalDamage = Math.floor(attackPower * variance);
+      
+      const timeBonusPoints = Math.max(0, timeLeft * 5); // Faster answers = more points
+
       if (isWeakness) {
         finalDamage = Math.floor(finalDamage * 1.5);
-        setBattleStats(s => ({ ...s, correct: s.correct + 1, superEffective: s.superEffective + 1 }));
+        setBattleStats(s => ({ ...s, correct: s.correct + 1, superEffective: s.superEffective + 1, timeBonus: s.timeBonus + timeBonusPoints }));
       } else {
-        setBattleStats(s => ({ ...s, correct: s.correct + 1 }));
+        setBattleStats(s => ({ ...s, correct: s.correct + 1, timeBonus: s.timeBonus + timeBonusPoints }));
       }
 
       setPlayerAnim('anim-atk-player');
@@ -90,7 +110,11 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
     } else {
       setBattleStats(s => ({ ...s, incorrect: s.incorrect + 1 }));
-      setMessage(`Fallo... La respuesta era: ${question.options[question.correctIndex]}`);
+      if (isTimeout) {
+        setMessage(`¡Se acabó el tiempo! La respuesta era: ${question.options[question.correctIndex]}`);
+      } else {
+        setMessage(`Fallo... La respuesta era: ${question.options[question.correctIndex]}`);
+      }
       setPhase('RESULT_PLAYER');
     }
   };
@@ -197,13 +221,21 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         )}
       </div>
 
-      {/* 2. MESSAGE BOX */}
-      <div className="bg-[#3b82f6] border-y-4 border-[#1e40af] p-3 w-full min-h-[80px] flex items-center justify-center relative shadow-lg z-10">
-        <div className="w-full max-w-full px-2 text-center">
+      {/* 2. MESSAGE BOX & ATB BAR */}
+      <div className="bg-[#3b82f6] border-y-4 border-[#1e40af] p-3 w-full min-h-[80px] flex flex-col items-center justify-center relative shadow-lg z-10">
+        <div className="w-full max-w-full px-2 text-center flex-1 flex items-center justify-center">
           <p className="text-white text-[11px] md:text-sm font-bold tracking-wide drop-shadow-md leading-relaxed inline-block w-full">
             {message}
           </p>
         </div>
+        {phase === 'ANSWERING' && (
+          <div className="w-full h-2 bg-gray-900 absolute bottom-0 left-0">
+             <div 
+               className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 5 ? 'bg-red-500 animate-pulse' : 'bg-yellow-400'}`} 
+               style={{ width: `${(timeLeft / maxTime) * 100}%` }}
+             ></div>
+          </div>
+        )}
       </div>
 
       {/* 3. ACTION DECK */}

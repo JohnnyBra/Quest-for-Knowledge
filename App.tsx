@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy } from './types';
 import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL } from './constants';
-import MapView from './components/MapView';
+import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { NARRATIVE } from './data/narrative';
-import { Sparkles, Skull, ScrollText, Heart, Shield, Sword, Key, Backpack, X, Zap, Star, LogOut } from 'lucide-react';
+import { Sparkles, Skull, ScrollText, Heart, Shield, Sword, Key, Backpack, X, Zap, Star, LogOut, BookOpen } from 'lucide-react';
+import Gallery from './components/Gallery';
 
 const INITIAL_PLAYER: Player = {
   x: LEVELS[0].start.x,
@@ -26,7 +27,8 @@ const INITIAL_PLAYER: Player = {
   correctAnswers: 0,
   incorrectAnswers: 0,
   superEffectiveAnswers: 0,
-  startTime: Date.now()
+  startTime: Date.now(),
+  defeatedEnemies: []
 };
 
 export default function App() {
@@ -44,19 +46,26 @@ export default function App() {
     visited: Array(MAP_HEIGHT).fill(false).map(() => Array(MAP_WIDTH).fill(false))
   });
 
+  const mapDataRef = useRef(mapData);
+
   const [activeEnemies, setActiveEnemies] = useState<ActiveEnemy[]>([]);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | null>(null);
 
   const [narrativeStep, setNarrativeStep] = useState<'PROLOGUE' | 'MISSION'>('PROLOGUE');
   const [showInventory, setShowInventory] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  // Sync player ref
+  // Sync refs
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
+
+  useEffect(() => {
+    mapDataRef.current = mapData;
+  }, [mapData]);
 
   // Initialize Fog of War (Only on GameState change)
   useEffect(() => {
@@ -110,7 +119,8 @@ export default function App() {
           if (targetX < 0 || targetX >= MAP_WIDTH || targetY < 0 || targetY >= MAP_HEIGHT) return enemy;
 
           // 2. Wall/Object Check
-          const tile = mapData.tiles[targetY][targetX];
+          const currentMap = mapDataRef.current;
+          const tile = currentMap.tiles[targetY]?.[targetX];
           if (tile === TileType.WALL || tile === TileType.SECRET_WALL || tile === TileType.BOSS || tile === TileType.PORTAL) {
             // If stuck chasing, try random move as fallback
             return enemy;
@@ -141,7 +151,7 @@ export default function App() {
     }, 550); // Move every 550ms (Slightly faster)
 
     return () => clearInterval(moveInterval);
-  }, [gameState, mapData]);
+  }, [gameState]);
 
 
   const updateFogOfWar = (px: number, py: number) => {
@@ -222,12 +232,34 @@ export default function App() {
   const handleMove = (dx: number, dy: number) => {
     if (gameState !== GameState.MAP) return;
 
-    const newX = player.x + dx;
-    const newY = player.y + dy;
+    let newX = player.x + dx;
+    let newY = player.y + dy;
 
     if (newX < 0 || newX >= MAP_WIDTH || newY < 0 || newY >= MAP_HEIGHT) return;
 
-    const targetTile = mapData.tiles[newY][newX];
+    let targetTile = mapData.tiles[newY][newX];
+
+    // Ice Slide Logic
+    if (targetTile === TileType.ICE) {
+       let finalX = newX;
+       let finalY = newY;
+       while (true) {
+          const nextX = finalX + dx;
+          const nextY = finalY + dy;
+          if (nextX < 0 || nextX >= MAP_WIDTH || nextY < 0 || nextY >= MAP_HEIGHT) break;
+          const nextTile = mapData.tiles[nextY][nextX];
+          if (nextTile === TileType.WALL || nextTile === TileType.SECRET_WALL || nextTile === TileType.BOSS || nextTile === TileType.PORTAL || nextTile === TileType.CHEST || nextTile === TileType.TRAP_WALL) break;
+          // check enemy collision
+          if (activeEnemies.some(e => e.x === nextX && e.y === nextY)) break;
+          
+          finalX = nextX;
+          finalY = nextY;
+          if (nextTile !== TileType.ICE) break; // Stop sliding when hitting normal terrain
+       }
+       newX = finalX;
+       newY = finalY;
+       targetTile = mapData.tiles[newY][newX];
+    }
 
     // --- COLLISION CHECKS ---
 
@@ -315,27 +347,13 @@ export default function App() {
   const triggerBattle = (activeEnemy: ActiveEnemy, isTrap: boolean = false) => {
     const template = ENEMY_TEMPLATES[activeEnemy.templateIndex];
 
-    // Determine Sprite URL based on ID
-    let spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/94.gif"; // Gengar default
-
-    switch (template.spriteId) {
-      case "goblin": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/302.gif"; break; // Sableye
-      case "ogre": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/68.gif"; break; // Machamp
-      case "slime": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/88.gif"; break; // Grimer
-      case "skeleton": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/105.gif"; break; // Marowak
-      case "bat": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/41.gif"; break; // Zubat
-      case "ghost": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/92.gif"; break; // Gastly
-      case "snake": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/23.gif"; break; // Ekans
-      case "knight": spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/625.gif"; break; // Bisharp
-    }
-
     setCurrentEnemy({
       id: activeEnemy.id,
       name: isTrap ? `Guardián Letal: ${template.name}` : template.name,
       hp: activeEnemy.hp,
       maxHp: activeEnemy.maxHp,
       difficulty: isTrap ? (currentLevelIndex + 2) * 2 : (currentLevelIndex + 1),
-      sprite: spriteUrl,
+      sprite: template.spriteUrl || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/94.gif",
       weakness: template.weakness,
       isBoss: false
     });
@@ -350,7 +368,7 @@ export default function App() {
       hp: 300 + (difficultyMultiplier * 50),
       maxHp: 300 + (difficultyMultiplier * 50),
       difficulty: 3,
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif", // Darkrai
+      sprite: BOSS_TEMPLATE.spriteUrl || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif",
       weakness: BOSS_TEMPLATE.weakness,
       isBoss: true
     });
@@ -359,6 +377,26 @@ export default function App() {
 
   const handleTileInteraction = async (tile: TileType, x: number, y: number) => {
     if (tile === TileType.CHEST) {
+      const newTiles = mapData.tiles.map(row => [...row]);
+      newTiles[y][x] = TileType.GRASS;
+      setMapData(prev => ({ ...prev, tiles: newTiles }));
+
+      // 25% chance for a Mimic
+      if (Math.random() < 0.25) {
+         showNotification("¡OH NO! ¡EL COFRE ERA UN MIMIC!");
+         const difficultyMultiplier = currentLevelIndex + 2;
+         const mimicEnemy: ActiveEnemy = {
+           id: `mimic-${Date.now()}`,
+           x,
+           y,
+           templateIndex: Math.floor(Math.random() * ENEMY_TEMPLATES.length), // Reusing base enemies as proxy for mimics stats
+           hp: 80 + (difficultyMultiplier * 60),
+           maxHp: 80 + (difficultyMultiplier * 60)
+         };
+         triggerBattle(mimicEnemy, true);
+         return;
+      }
+
       const otherItems = GAME_ITEMS.filter(i => i.id !== 'key');
       const newItem = otherItems[Math.floor(Math.random() * otherItems.length)];
 
@@ -380,10 +418,6 @@ export default function App() {
       });
 
       showNotification(`¡Has encontrado: ${newItem.name}!`);
-
-      const newTiles = mapData.tiles.map(row => [...row]);
-      newTiles[y][x] = TileType.GRASS;
-      setMapData(prev => ({ ...prev, tiles: newTiles }));
 
     } else if (tile === TileType.PORTAL) {
       if (currentLevelIndex < LEVELS.length - 1) {
@@ -408,6 +442,30 @@ export default function App() {
           inventory: newInv
         };
       });
+    } else if (item.type === ItemType.BOMB) {
+       setPlayer(prev => {
+          const newInv = [...prev.inventory];
+          newInv.splice(index, 1);
+          return { ...prev, inventory: newInv };
+       });
+
+       setMapData(prev => {
+          const newTiles = prev.tiles.map(row => [...row]);
+          let found = false;
+          const radius = 2;
+          for(let y = Math.max(0, player.y - radius); y <= Math.min(MAP_HEIGHT - 1, player.y + radius); y++) {
+             for(let x = Math.max(0, player.x - radius); x <= Math.min(MAP_WIDTH - 1, player.x + radius); x++) {
+                if (newTiles[y][x] === TileType.SECRET_WALL || newTiles[y][x] === TileType.TRAP_WALL) {
+                   newTiles[y][x] = TileType.GRASS;
+                   found = true;
+                }
+             }
+          }
+          if (found) showNotification("¡BOMBA! Muros ilusorios destruidos en área.");
+          else showNotification("¡BOMBA! ...Pero no derribó ningún muro cercano.");
+          return { ...prev, tiles: newTiles };
+       });
+       setShowInventory(false);
     }
   };
 
@@ -416,8 +474,24 @@ export default function App() {
     setCurrentLevelIndex(index);
     const levelData = LEVELS[index];
 
-    // Deep copy map
-    const newTiles = levelData.map.map(row => [...row]);
+    const newTiles = levelData.generateMap();
+
+    // 0. Ensure start, boss, and portal areas are clear (3x3 minimum freedom)
+    const freeArea = (cx: number, cy: number, radius: number) => {
+       for(let y = cy - radius; y <= cy + radius; y++) {
+          for(let x = cx - radius; x <= cx + radius; x++) {
+             if (y > 0 && y < MAP_HEIGHT - 1 && x > 0 && x < MAP_WIDTH - 1) {
+                if (newTiles[y][x] === TileType.WALL || newTiles[y][x] === TileType.SECRET_WALL || newTiles[y][x] === TileType.TRAP_WALL) {
+                   newTiles[y][x] = levelData.theme === 'SNOW' ? TileType.ICE : TileType.GRASS;
+                }
+             }
+          }
+       }
+    };
+    
+    freeArea(levelData.start.x, levelData.start.y, 1);
+    freeArea(levelData.bossPos.x, levelData.bossPos.y, 1);
+    freeArea(levelData.portalPos.x, levelData.portalPos.y, 1);
 
     // 1. Place Static Boss & Portal
     newTiles[levelData.portalPos.y][levelData.portalPos.x] = TileType.PORTAL;
@@ -427,8 +501,8 @@ export default function App() {
     const validSpawns: { x: number, y: number }[] = [];
     for (let y = 0; y < MAP_HEIGHT; y++) {
       for (let x = 0; x < MAP_WIDTH; x++) {
-        // Spawn on Grass only
-        if (newTiles[y][x] === TileType.GRASS) {
+        // Spawn on Grass or Ice only
+        if (newTiles[y][x] === TileType.GRASS || newTiles[y][x] === TileType.ICE) {
           const distStart = Math.abs(x - levelData.start.x) + Math.abs(y - levelData.start.y);
           if (distStart > 4) { // Further away 
             validSpawns.push({ x, y });
@@ -492,14 +566,16 @@ export default function App() {
     showNotification(levelData.title);
   };
 
-  const handleBattleVictory = (xpGained: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number }) => {
+  const handleBattleVictory = (xpGained: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number, timeBonus: number }) => {
     const newXp = player.xp + xpGained;
     const levelUp = newXp >= (player.level * 100);
 
     let isBoss = false;
+    let baseEnemyName = '';
 
     if (currentEnemy) {
       isBoss = !!currentEnemy.isBoss;
+      baseEnemyName = currentEnemy.name.replace('Guardián Letal: ', '');
       if (currentEnemy.isBoss) {
         const newTiles = mapData.tiles.map(row => [...row]);
         const bossPos = LEVELS[currentLevelIndex].bossPos;
@@ -515,11 +591,17 @@ export default function App() {
     let pointsGained = isBoss ? 2000 : 200;
     pointsGained += stats.correct * 50;
     pointsGained += stats.superEffective * 50;
+    pointsGained += stats.timeBonus;
     pointsGained -= stats.incorrect * 20;
 
-    // Bonus impecable contra jefe
-    if (isBoss && stats.incorrect === 0) {
-      pointsGained += 1000;
+    // Bonus impecable (sin fallos) contra enemigo o jefe
+    if (stats.incorrect === 0) {
+      pointsGained += isBoss ? 1500 : 100; // Flawless bonus
+    }
+    
+    // Si no recibió daño
+    if (remainingHp === player.hp) {
+       pointsGained += isBoss ? 1000 : 50; // Untouched bonus
     }
 
     setPlayer(prev => {
@@ -546,9 +628,18 @@ export default function App() {
         score: prev.score + pointsGained,
         correctAnswers: prev.correctAnswers + stats.correct,
         incorrectAnswers: prev.incorrectAnswers + stats.incorrect,
-        superEffectiveAnswers: prev.superEffectiveAnswers + stats.superEffective
+        superEffectiveAnswers: prev.superEffectiveAnswers + stats.superEffective,
+        defeatedEnemies: (prev.defeatedEnemies || []).includes(baseEnemyName) 
+          ? (prev.defeatedEnemies || [])
+          : [...(prev.defeatedEnemies || []), baseEnemyName]
       };
     });
+
+    if (baseEnemyName && !(player.defeatedEnemies || []).includes(baseEnemyName)) {
+      setTimeout(() => {
+        showNotification(`¡Has desbloqueado un nuevo enemigo en el Bestiario: ${baseEnemyName}!`);
+      }, 3500); // Show after the battle won msg
+    }
 
     setCurrentEnemy(null);
     setGameState(GameState.MAP);
@@ -596,6 +687,10 @@ export default function App() {
           <div className="bg-[#1a1a1a] border-b-4 border-[#333] px-3 py-2 flex justify-between items-center text-[10px] md:text-xs tracking-wider font-bold shadow-lg pointer-events-auto">
             <span className="text-yellow-500 uppercase truncate max-w-[40%]">{currentLevelTitle}</span>
             <div className="flex gap-3 text-white items-center">
+              <button onClick={() => setShowGallery(true)} className="flex items-center gap-1 bg-purple-900 border-2 border-purple-500 px-3 py-1 rounded hover:bg-purple-800 transition-colors shadow-[0_2px_0_rgb(88,28,135)] active:shadow-none active:translate-y-[2px]">
+                <BookOpen size={14} />
+                <span className="hidden md:inline">BESTIARIO</span>
+              </button>
               <button onClick={() => setShowInventory(true)} className="flex items-center gap-1 bg-blue-900 border-2 border-blue-500 px-3 py-1 rounded hover:bg-blue-800 transition-colors shadow-[0_2px_0_rgb(30,58,138)] active:shadow-none active:translate-y-[2px]">
                 <Backpack size={14} />
                 <span className="hidden md:inline">MOCHILA</span>
@@ -652,6 +747,10 @@ export default function App() {
             </div>
           )}
         </div>
+      )}
+
+      {showGallery && (
+        <Gallery defeatedEnemies={player.defeatedEnemies} onClose={() => setShowGallery(false)} />
       )}
 
       {/* Inventory Modal */}
@@ -761,8 +860,8 @@ export default function App() {
         )}
 
         {gameState === GameState.MAP && (
-          <div className="flex flex-col items-center justify-start w-full flex-1">
-            <MapView mapData={mapData} player={player} activeEnemies={activeEnemies} onMove={handleMove} theme={LEVELS[currentLevelIndex].theme} />
+          <div className="flex flex-col items-center justify-start w-full flex-1 mt-2">
+            <CanvasMapView mapData={mapData} player={player} activeEnemies={activeEnemies} onMove={handleMove} theme={LEVELS[currentLevelIndex].theme} />
             {/* Objective Box */}
             <div className="mt-2 mx-2 bg-[#2a2a2a] border-2 border-[#4a4a4a] py-1 px-3 rounded shadow-lg w-full max-w-md z-20 opacity-80 backdrop-blur-sm hidden md:block">
               <p className="text-[10px] md:text-sm text-gray-200 text-center leading-tight">

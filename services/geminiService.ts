@@ -1,10 +1,11 @@
 import { Question, Subject } from '../types';
 import { STATIC_QUESTIONS } from '../data/questions';
 
+const globalAskedQuestions = new Set<string>();
+
 export const generateEducationalContent = async (
   type: 'combat' | 'puzzle' | 'boss',
-  subject?: Subject,
-  excludeTexts: string[] = []
+  subject?: Subject
 ): Promise<Question> => {
   
   // Pick a random subject if none is provided
@@ -19,7 +20,7 @@ export const generateEducationalContent = async (
   let subjectQuestions = STATIC_QUESTIONS.filter(q => 
     q.subject === selectedSubject && 
     q.difficulty === targetDifficulty &&
-    !excludeTexts.includes(q.text)
+    !globalAskedQuestions.has(q.text)
   );
   
   // Fallback 1: If we ran out of new questions for this difficulty, reset exclusion list for this specific set
@@ -38,7 +39,9 @@ export const generateEducationalContent = async (
   // Pick one at random
   if (subjectQuestions.length > 0) {
     const randomIndex = Math.floor(Math.random() * subjectQuestions.length);
-    return subjectQuestions[randomIndex];
+    const selectedQuestion = subjectQuestions[randomIndex];
+    globalAskedQuestions.add(selectedQuestion.text);
+    return selectedQuestion;
   }
 
   // Ultimate Fallback

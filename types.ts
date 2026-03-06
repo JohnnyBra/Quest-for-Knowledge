@@ -21,14 +21,16 @@ export enum TileType {
   BOSS = 8,
   LOCKED_DOOR = 9,
   SECRET_WALL = 10, // New breakable wall
-  TRAP_WALL = 11 // Invisible trap inside a wall
+  TRAP_WALL = 11, // Invisible trap inside a wall
+  ICE = 12 // Slide until wall
 }
 
 export enum ItemType {
   WEAPON,
   ARMOR,
   POTION,
-  KEY
+  KEY,
+  BOMB
 }
 
 export interface Item {
@@ -61,6 +63,8 @@ export interface Player extends Entity {
   incorrectAnswers: number;
   superEffectiveAnswers: number;
   startTime: number;
+  isSliding?: boolean;
+  defeatedEnemies: string[];
 }
 
 export interface Enemy {
