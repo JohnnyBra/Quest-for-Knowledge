@@ -115,19 +115,54 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
           const ty = y * TILE_SIZE;
 
           // Background
-          if (tile === TileType.WALL || tile === TileType.SECRET_WALL || tile === TileType.TRAP_WALL) {
-            ctx.fillStyle = theme === 'CLASSROOM' ? '#7c2d12' : theme === 'GARDEN' ? '#14532d' : theme === 'SNOW' ? '#64748b' : '#1e293b';
+          if (tile === TileType.WALL || tile === TileType.SECRET_WALL || tile === TileType.TRAP_WALL || tile === TileType.DOOR_CLOSED) {
+            ctx.fillStyle = tile === TileType.DOOR_CLOSED ? '#334155' : theme === 'CLASSROOM' ? '#7c2d12' : theme === 'GARDEN' ? '#14532d' : theme === 'SNOW' ? '#64748b' : '#1e293b';
             ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.fillRect(tx, ty + TILE_SIZE - 4, TILE_SIZE, 4); // Fake 3D
+            if (tile === TileType.DOOR_CLOSED) {
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = '#0f172a';
+              ctx.strokeRect(tx + 4, ty + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+              ctx.fillStyle = '#f59e0b';
+              ctx.beginPath();
+              ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, 4, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = 'rgba(0,0,0,0.5)';
+              ctx.fillRect(tx, ty + TILE_SIZE - 4, TILE_SIZE, 4); // Fake 3D
+            }
           } else if (tile === TileType.ICE) {
             ctx.fillStyle = '#e0f2fe';
             ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
             ctx.fillStyle = '#bae6fd';
             ctx.fillRect(tx, ty, TILE_SIZE, 2);
           } else {
+            // Include PATH, GRASS, DOOR_OPEN, BUTTON, BOULDER (background is floor)
             ctx.fillStyle = theme === 'CLASSROOM' ? '#d97706' : theme === 'GARDEN' ? '#22c55e' : theme === 'SNOW' ? '#e2e8f0' : '#475569';
             ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+            if (tile === TileType.DOOR_OPEN) {
+              ctx.fillStyle = 'rgba(0,0,0,0.2)';
+              ctx.fillRect(tx + 4, ty + 4, 8, TILE_SIZE - 8);
+              ctx.fillRect(tx + TILE_SIZE - 12, ty + 4, 8, TILE_SIZE - 8);
+            }
+          }
+
+          // Floor Details / Puzzle Objects
+          if (tile === TileType.BUTTON || tile === TileType.BUTTON_PRESSED) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(tx + 8, ty + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+            ctx.fillStyle = tile === TileType.BUTTON_PRESSED ? '#ef4444' : '#64748b'; // Red when pressed
+            ctx.fillRect(tx + 12, ty + 12, TILE_SIZE - 24, TILE_SIZE - 24);
+          }
+
+          if (tile === TileType.BOULDER || tile === TileType.BUTTON_PRESSED) {
+             ctx.fillStyle = '#57534e';
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2 - 2, 16, 0, Math.PI * 2);
+             ctx.fill();
+             ctx.fillStyle = '#78716c';
+             ctx.beginPath();
+             ctx.arc(tx + TILE_SIZE / 2 - 4, ty + TILE_SIZE / 2 - 6, 6, 0, Math.PI * 2);
+             ctx.fill();
           }
 
           // Objects

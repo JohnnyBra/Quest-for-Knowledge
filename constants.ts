@@ -25,7 +25,7 @@ const createEmptyMap = (): TileType[][] => {
 // --- PROCEDURAL GENERATORS ---
 const generateMap1 = (): TileType[][] => {
   const map = createEmptyMap();
-  const cols = [4, 8, 12, 16, 20, 24, 28];
+  const cols = [4, 8, 12, 16, 20, 24]; // En lugar de hasta 28, dejamos el final libre para el boss
   
   cols.forEach(colX => {
     // A single random gap of size 4 in each column
@@ -36,6 +36,19 @@ const generateMap1 = (): TileType[][] => {
       }
     }
   });
+
+  // Muro protector final para el portal y el jefe, con una puerta cerrada
+  for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+    map[y][28] = TileType.WALL;
+  }
+  
+  // Puerta de entrada a la zona del jefe
+  map[15][28] = TileType.DOOR_CLOSED;
+
+  // Botón y Roca para el puzle
+  map[5][26] = TileType.BUTTON;
+  map[5][24] = TileType.BOULDER;
+
   return map;
 };
 
@@ -82,6 +95,36 @@ const generateMap3 = (): TileType[][] => {
   return map;
 };
 
+const generateMap4 = (): TileType[][] => {
+  const map = createEmptyMap();
+  
+  // A blocking wall near the right side to hide the portal
+  for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+    map[y][27] = TileType.WALL;
+  }
+  
+  // A single closed door to pass through the wall
+  map[10][27] = TileType.DOOR_CLOSED;
+
+  // Add buttons that need to be pressed
+  map[5][20] = TileType.BUTTON;
+  map[15][20] = TileType.BUTTON;
+
+  // Add boulders to push onto buttons
+  map[5][10] = TileType.BOULDER;
+  map[15][10] = TileType.BOULDER;
+
+  // Add a few scattered walls for obstacle
+  map[4][15] = TileType.WALL;
+  map[5][15] = TileType.WALL;
+  map[6][15] = TileType.WALL;
+  map[14][15] = TileType.WALL;
+  map[15][15] = TileType.WALL;
+  map[16][15] = TileType.WALL;
+
+  return map;
+};
+
 export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW';
 
 interface LevelConfig {
@@ -103,7 +146,7 @@ export const LEVELS: LevelConfig[] = [
     theme: 'CLASSROOM',
     bossPos: { x: 30, y: 20 },
     portalPos: { x: 30, y: 21 },
-    enemyCount: 20,
+    enemyCount: 10,
     chestCount: 2
   },
   {
@@ -113,7 +156,7 @@ export const LEVELS: LevelConfig[] = [
     theme: 'SNOW',
     bossPos: { x: 1, y: 18 },
     portalPos: { x: 30, y: 19 },
-    enemyCount: 28,
+    enemyCount: 14,
     chestCount: 3
   },
   {
@@ -123,8 +166,18 @@ export const LEVELS: LevelConfig[] = [
     theme: 'DUNGEON',
     bossPos: { x: 3, y: 20 },
     portalPos: { x: 30, y: 20 },
-    enemyCount: 40,
+    enemyCount: 20,
     chestCount: 4
+  },
+  {
+    generateMap: generateMap4,
+    start: { x: 5, y: 10 },
+    title: "NIVEL 4: EL ENIGMA DE LAS ROCAS",
+    theme: 'CLASSROOM',
+    bossPos: { x: 29, y: 10 },
+    portalPos: { x: 30, y: 10 },
+    enemyCount: 15,
+    chestCount: 3
   }
 ];
 
@@ -139,7 +192,15 @@ export const ENEMY_TEMPLATES = [
   { name: "Murciélago de la Duda", weakness: Subject.MATH, spriteId: "bat", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/41.gif", description: "En la oscuridad de la cueva, este murciélago se alimenta de tus dudas en las multiplicaciones." },
   { name: "Fantasma de la Ignorancia", weakness: Subject.LANGUAGE, spriteId: "ghost", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/92.gif", description: "Un ente aterrador que susurra palabras mal escritas para confundirte." },
   { name: "Serpiente Silbante", weakness: Subject.KNOWLEDGE, spriteId: "snake", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/23.gif", description: "Es rápida y venenosa, pero una buena comprensión del ecosistema puede detenerla." },
-  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/625.gif", description: "Un caballero acorazado con geometría; solo un buen matemático puede abrir una brecha en su armadura." }
+  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/625.gif", description: "Un caballero acorazado con geometría; solo un buen matemático puede abrir una brecha en su armadura." },
+
+  // Even More Enemies
+  { name: "Gólem de la Piedra Angular", weakness: Subject.MATH, spriteId: "golem", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/76.gif", description: "Formado por rocas pesadísimas, solo unos buenos cálculos arquitectónicos pueden desmontarlo." },
+  { name: "Bruja de la Caligrafía", weakness: Subject.LANGUAGE, spriteId: "witch", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/429.gif", description: "Vuela sobre una regla y maldice a quienes escriben sin acentos." },
+  { name: "Mago del Tiempo", weakness: Subject.KNOWLEDGE, spriteId: "wizard", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/65.gif", description: "Intenta confundirte con fechas históricas erróneas y capitales de países perdidos." },
+  { name: "Árbol Engañoso", weakness: Subject.KNOWLEDGE, spriteId: "tree", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/185.gif", description: "Finge ser una planta inofensiva, pero está lleno de preguntas sobre la fotosíntesis." },
+  { name: "Sabueso Infernal", weakness: Subject.MATH, spriteId: "hound", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/229.gif", description: "Un perro fiero que persigue a los que no se saben la tabla del 7." },
+  { name: "Mimo del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/122.gif", description: "Un mimo mudo que reta tus habilidades para identificar sinónimos y antónimos." }
 ];
 
 export const BOSS_TEMPLATE = {
@@ -198,6 +259,14 @@ export const GAME_ITEMS: Item[] = [
     value: 1,
     description: 'Destruye muros cercanos o revela secretos.',
     icon: 'bomb'
+  },
+  {
+    id: 'crit_basic',
+    name: 'Gafas de Concentración',
+    type: ItemType.CRIT_UP,
+    value: 15,
+    description: '+15% Prob. Crítico.',
+    icon: 'zap'
   }
 ];
 

@@ -22,7 +22,12 @@ export enum TileType {
   LOCKED_DOOR = 9,
   SECRET_WALL = 10, // New breakable wall
   TRAP_WALL = 11, // Invisible trap inside a wall
-  ICE = 12 // Slide until wall
+  ICE = 12, // Slide until wall
+  BOULDER = 13, // Pushable block
+  BUTTON = 14, // Pressure plate
+  BUTTON_PRESSED = 15, // Pressure plate with boulder on it
+  DOOR_CLOSED = 16, // Blocking door
+  DOOR_OPEN = 17 // Passed door
 }
 
 export enum ItemType {
@@ -30,7 +35,8 @@ export enum ItemType {
   ARMOR,
   POTION,
   KEY,
-  BOMB
+  BOMB,
+  CRIT_UP
 }
 
 export interface Item {
@@ -57,6 +63,7 @@ export interface Player extends Entity {
   stats: {
     attack: number;
     defense: number;
+    critChance: number;
   };
   score: number;
   correctAnswers: number;

@@ -16,6 +16,9 @@ type BattlePhase = 'INIT' | 'SELECT_SUBJECT' | 'GENERATING_QUESTION' | 'ANSWERIN
 const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onHpUpdate }) => {
   const [phase, setPhase] = useState<BattlePhase>('INIT');
   const [question, setQuestion] = useState<Question | null>(null);
+  const [criticalQuestion, setCriticalQuestion] = useState<Question | null>(null);
+  const [isCriticalHitTarget, setIsCriticalHitTarget] = useState(false);
+  const [answeredFirstCrit, setAnsweredFirstCrit] = useState(false);
   const [message, setMessage] = useState(`¡${enemy.name} ataca!`);
   const [enemyHp, setEnemyHp] = useState(enemy.maxHp);
   const [playerHp, setPlayerHp] = useState(player.hp);
@@ -57,14 +60,27 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     setPhase('GENERATING_QUESTION');
     setMessage(`Cargando pregunta de ${subject}...`);
     try {
+      const isCrit = Math.random() * 100 < (player.stats.critChance || 0);
+      setIsCriticalHitTarget(isCrit);
+      setAnsweredFirstCrit(false);
+
       const q = await generateEducationalContent(
         enemy.isBoss ? 'boss' : 'combat',
         subject
       );
       setQuestion(q);
+      
+      if (isCrit) {
+         const q2 = await generateEducationalContent(
+           enemy.isBoss ? 'boss' : 'combat',
+           subject
+         );
+         setCriticalQuestion(q2);
+      }
+
       setPhase('ANSWERING');
       setTimeLeft(maxTime);
-      setMessage(q.text);
+      setMessage(isCrit ? `¡OPORTUNIDAD DE CRÍTICO! Pregunta 1: ${q.text}` : q.text);
     } catch (e) {
       setPhase('SELECT_SUBJECT');
       setMessage("Error mágico. Intenta otra vez.");
@@ -75,6 +91,14 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     if (!question) return;
 
     if (!isTimeout && index === question.correctIndex) {
+      if (isCriticalHitTarget && !answeredFirstCrit) {
+         setAnsweredFirstCrit(true);
+         setQuestion(criticalQuestion);
+         setTimeLeft(maxTime);
+         setMessage(`¡Correcto! Fase 2 Crítica: ${criticalQuestion!.text}`);
+         return;
+      }
+
       const attackPower = player.stats.attack;
       const isWeakness = question.subject === enemy.weakness;
       const variance = (Math.random() * 0.4) + 0.8;
@@ -85,6 +109,13 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
       if (isWeakness) {
         finalDamage = Math.floor(finalDamage * 1.5);
+      }
+      
+      if (isCriticalHitTarget && answeredFirstCrit) {
+        finalDamage = Math.floor(finalDamage * 2.5); // CRITICAL HIT MULTIPLIER
+      }
+
+      if (isWeakness) {
         setBattleStats(s => ({ ...s, correct: s.correct + 1, superEffective: s.superEffective + 1, timeBonus: s.timeBonus + timeBonusPoints }));
       } else {
         setBattleStats(s => ({ ...s, correct: s.correct + 1, timeBonus: s.timeBonus + timeBonusPoints }));
@@ -99,7 +130,8 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         setEnemyHp(newHp);
 
         const weakText = isWeakness ? " ¡Súper efectivo!" : "";
-        setMessage(`¡Correcto!${weakText} Daño: ${finalDamage}`);
+        const critText = (isCriticalHitTarget && answeredFirstCrit) ? " ¡GOLPE CRÍTICO!" : "";
+        setMessage(`¡Correcto!${critText}${weakText} Daño: ${finalDamage}`);
 
         setTimeout(() => {
           setEnemyAnim('');
@@ -110,11 +142,17 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
     } else {
       setBattleStats(s => ({ ...s, incorrect: s.incorrect + 1 }));
+      let errorMsg = "";
       if (isTimeout) {
-        setMessage(`¡Se acabó el tiempo! La respuesta era: ${question.options[question.correctIndex]}`);
+        errorMsg = `¡Se acabó el tiempo! La respuesta era: ${question.options[question.correctIndex]}`;
       } else {
-        setMessage(`Fallo... La respuesta era: ${question.options[question.correctIndex]}`);
+        errorMsg = `Fallo... La respuesta era: ${question.options[question.correctIndex]}`;
       }
+      
+      if (isCriticalHitTarget && answeredFirstCrit) {
+         errorMsg = "¡Fallo en el golpe crítico! " + errorMsg;
+      }
+      setMessage(errorMsg);
       setPhase('RESULT_PLAYER');
     }
   };

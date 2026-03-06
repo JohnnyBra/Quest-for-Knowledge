@@ -21,7 +21,8 @@ const INITIAL_PLAYER: Player = {
   name: "Estudiante Heroico",
   stats: {
     attack: 10,
-    defense: 0
+    defense: 0,
+    critChance: 0
   },
   score: 0,
   correctAnswers: 0,
@@ -248,7 +249,7 @@ export default function App() {
           const nextY = finalY + dy;
           if (nextX < 0 || nextX >= MAP_WIDTH || nextY < 0 || nextY >= MAP_HEIGHT) break;
           const nextTile = mapData.tiles[nextY][nextX];
-          if (nextTile === TileType.WALL || nextTile === TileType.SECRET_WALL || nextTile === TileType.BOSS || nextTile === TileType.PORTAL || nextTile === TileType.CHEST || nextTile === TileType.TRAP_WALL) break;
+          if (nextTile === TileType.WALL || nextTile === TileType.SECRET_WALL || nextTile === TileType.BOSS || nextTile === TileType.PORTAL || nextTile === TileType.CHEST || nextTile === TileType.TRAP_WALL || nextTile === TileType.DOOR_CLOSED || nextTile === TileType.BOULDER || nextTile === TileType.BUTTON_PRESSED) break;
           // check enemy collision
           if (activeEnemies.some(e => e.x === nextX && e.y === nextY)) break;
           
@@ -266,6 +267,60 @@ export default function App() {
     // 1. Walls
     if (targetTile === TileType.WALL) return;
 
+    // 1.5 Doors
+    if (targetTile === TileType.DOOR_CLOSED) {
+       showNotification("La puerta está cerrada por un mecanismo...");
+       return;
+    }
+
+    // 1.6 Boulders
+    if (targetTile === TileType.BOULDER || targetTile === TileType.BUTTON_PRESSED) {
+       const pushX = newX + dx;
+       const pushY = newY + dy;
+       
+       if (pushX >= 0 && pushX < MAP_WIDTH && pushY >= 0 && pushY < MAP_HEIGHT) {
+          const backTile = mapData.tiles[pushY][pushX];
+          // Can push if the back tile is GRASS, or BUTTON (or ICE but let's stick to GRASS/BUTTON to avoid sliding mechanics for blocks)
+          if (backTile === TileType.GRASS || backTile === TileType.BUTTON) {
+             const newTiles = mapData.tiles.map(row => [...row]);
+             
+             // The tile we pushed from
+             newTiles[newY][newX] = targetTile === TileType.BUTTON_PRESSED ? TileType.BUTTON : TileType.GRASS;
+             
+             // The tile we pushed to
+             newTiles[pushY][pushX] = backTile === TileType.BUTTON ? TileType.BUTTON_PRESSED : TileType.BOULDER;
+
+             // Check puzzle solved (all BUTTONs are pressed, no empty BUTTONs)
+             let isSolved = true;
+             let hasButtons = false;
+             for (let y = 0; y < MAP_HEIGHT; y++) {
+                for (let x = 0; x < MAP_WIDTH; x++) {
+                   if (newTiles[y][x] === TileType.BUTTON) isSolved = false;
+                   if (newTiles[y][x] === TileType.BUTTON_PRESSED || newTiles[y][x] === TileType.BUTTON) hasButtons = true;
+                }
+             }
+
+             if (hasButtons && isSolved) {
+                // Open all doors
+                for (let y = 0; y < MAP_HEIGHT; y++) {
+                   for (let x = 0; x < MAP_WIDTH; x++) {
+                      if (newTiles[y][x] === TileType.DOOR_CLOSED) {
+                         newTiles[y][x] = TileType.DOOR_OPEN;
+                      }
+                   }
+                }
+                showNotification("¡Has resuelto el acertijo! La puerta se ha abierto.");
+             }
+
+             setMapData(prev => ({ ...prev, tiles: newTiles }));
+             setPlayer(prev => ({ ...prev, x: newX, y: newY })); // Player steps into the tile
+             updateFogOfWar(newX, newY);
+             return;
+          }
+       }
+       return; // Can't push
+    }
+
     // 2. Secret Walls (Reveal and stop)
     if (targetTile === TileType.SECRET_WALL) {
       const newTiles = mapData.tiles.map(row => [...row]);
@@ -281,6 +336,7 @@ export default function App() {
 
         if (specialItem.type === ItemType.WEAPON) newStats.attack += specialItem.value;
         if (specialItem.type === ItemType.ARMOR) { newMaxHp += specialItem.value; newHp += specialItem.value; }
+        if (specialItem.type === ItemType.CRIT_UP) newStats.critChance += specialItem.value;
 
         return {
           ...prev,
@@ -352,7 +408,7 @@ export default function App() {
       name: isTrap ? `Guardián Letal: ${template.name}` : template.name,
       hp: activeEnemy.hp,
       maxHp: activeEnemy.maxHp,
-      difficulty: isTrap ? (currentLevelIndex + 2) * 2 : (currentLevelIndex + 1),
+      difficulty: isTrap ? (currentLevelIndex + 2) * 2 : Math.floor((currentLevelIndex + 1) * 1.5),
       sprite: template.spriteUrl || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/94.gif",
       weakness: template.weakness,
       isBoss: false
@@ -407,6 +463,7 @@ export default function App() {
 
         if (newItem.type === ItemType.WEAPON) newStats.attack += newItem.value;
         if (newItem.type === ItemType.ARMOR) { newMaxHp += newItem.value; newHp += newItem.value; }
+        if (newItem.type === ItemType.CRIT_UP) newStats.critChance += newItem.value;
 
         return {
           ...prev,
@@ -778,7 +835,13 @@ export default function App() {
                 <div className="flex items-center gap-2 text-green-400 font-bold text-base md:text-xl">
                   <Heart size={20} /> {player.maxHp}
                 </div>
+                <div className="flex flex-col items-center">
+                <span className="text-gray-400 text-[8px] md:text-xs uppercase">Crítico</span>
+                <div className="flex items-center gap-2 text-yellow-400 font-bold text-base md:text-xl">
+                  <Zap size={20} /> {player.stats.critChance}%
+                </div>
               </div>
+            </div>
             </div>
 
             <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-[#111]">

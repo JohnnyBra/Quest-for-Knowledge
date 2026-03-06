@@ -5,6 +5,32 @@
       "score": 3681,
       "level": 3,
       "date": "2026-03-05T22:54:34.363Z"
+    },
+    {
+      "name": "Javi",
+      "score": 3654,
+      "level": 1,
+      "timeBonus": 2724,
+      "stats": {
+        "correct": 5,
+        "incorrect": 2,
+        "superEffective": 3,
+        "timeInSeconds": 92
+      },
+      "date": "2026-03-06T17:48:48.055Z"
+    },
+    {
+      "name": "JAvi",
+      "score": 2706,
+      "level": 1,
+      "timeBonus": 2706,
+      "stats": {
+        "correct": 0,
+        "incorrect": 0,
+        "superEffective": 0,
+        "timeInSeconds": 98
+      },
+      "date": "2026-03-06T17:51:24.930Z"
     }
   ]
 }
