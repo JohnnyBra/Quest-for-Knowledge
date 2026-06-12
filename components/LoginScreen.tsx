@@ -27,10 +27,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen bg-[#111] flex items-center justify-center p-4 font-retro relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
-      
-      <p className="relative z-10 text-yellow-400 text-base md:text-xl font-bold tracking-widest mb-6 pixel-text-shadow text-center">
-        Creado por Javi Barrero
-      </p>
+
       <RetroBox title="IDENTIFICACIÓN DE HÉROE" className="w-full max-w-md bg-[#1a1a1a] border-blue-500 shadow-2xl relative z-10">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-4">
           <div className="text-center text-gray-300 text-xs md:text-sm mb-2">
@@ -55,6 +52,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <RetroButton type="submit" className="w-full bg-blue-700 border-blue-500 shadow-[0_4px_0_rgb(29,78,216)] active:shadow-none active:translate-y-[4px] flex justify-center items-center gap-2">
             <span>COMENZAR</span> <ArrowRight size={16} />
           </RetroButton>
+
+          <p className="text-yellow-500 text-[10px] md:text-xs text-center tracking-widest pixel-text-shadow border-t border-gray-700 pt-4 mt-2">
+            Creado por Javi Barrero
+          </p>
         </form>
       </RetroBox>
     </div>
