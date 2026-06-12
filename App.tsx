@@ -915,6 +915,7 @@ export default function App() {
 
           <div className="bg-[#1a1a1a] border-b-4 border-[#333] px-3 py-2 flex justify-between items-center text-[10px] md:text-xs tracking-wider font-bold shadow-lg pointer-events-auto">
             <span className="text-yellow-500 uppercase truncate max-w-[40%]">{currentLevelTitle}</span>
+            <span className="text-gray-600 text-[8px] md:text-[10px] tracking-wide hidden sm:inline">Creado por Javi Barrero</span>
             <div className="flex gap-3 text-white items-center">
               <button onClick={() => setShowGallery(true)} className="flex items-center gap-1 bg-purple-900 border-2 border-purple-500 px-3 py-1 rounded hover:bg-purple-800 transition-colors shadow-[0_2px_0_rgb(88,28,135)] active:shadow-none active:translate-y-[2px]">
                 <BookOpen size={14} />
@@ -1076,6 +1077,9 @@ export default function App() {
                 VER RANKING
               </RetroButton>
             </div>
+            <p className="text-yellow-400 text-base md:text-xl font-bold tracking-widest mt-4 pixel-text-shadow text-center">
+              Creado por Javi Barrero
+            </p>
           </div>
         )}
 

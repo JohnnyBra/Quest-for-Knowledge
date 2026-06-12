@@ -28,6 +28,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
       
+      <p className="relative z-10 text-yellow-400 text-base md:text-xl font-bold tracking-widest mb-6 pixel-text-shadow text-center">
+        Creado por Javi Barrero
+      </p>
       <RetroBox title="IDENTIFICACIÓN DE HÉROE" className="w-full max-w-md bg-[#1a1a1a] border-blue-500 shadow-2xl relative z-10">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-4">
           <div className="text-center text-gray-300 text-xs md:text-sm mb-2">
