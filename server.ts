@@ -16,7 +16,7 @@ if (!fs.existsSync(DB_FILE)) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 3030;
 
   app.use(cors());
   app.use(bodyParser.json());

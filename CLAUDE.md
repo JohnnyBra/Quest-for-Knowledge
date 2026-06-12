@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Dev (runs Express + Vite middleware together on port 3000)
+# Dev (runs Express + Vite middleware together on port 3030)
 npm run dev
 
 # Type-check (no build output)
