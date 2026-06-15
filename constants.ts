@@ -10,6 +10,9 @@ export const TILE_SIZE = 48; // pixels
 export const MAP_WIDTH = 32;
 export const MAP_HEIGHT = 22;
 
+// Posición inicial de la roca empujable del Nivel 1 (ver generateMap1)
+export const MAP1_BOULDER_START = { x: 24, y: 5 };
+
 // Helper to create an empty map with borders
 const createEmptyMap = (): TileType[][] => {
   const map: TileType[][] = [];
@@ -53,7 +56,7 @@ const generateMap1 = (): TileType[][] => {
 
   // Botón y Roca para el puzle
   map[5][26] = TileType.BUTTON;
-  map[5][24] = TileType.BOULDER;
+  map[MAP1_BOULDER_START.y][MAP1_BOULDER_START.x] = TileType.BOULDER;
 
   return map;
 };
