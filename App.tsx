@@ -717,10 +717,12 @@ export default function App() {
   const resetMap1BoulderIfNeeded = () => {
     setMapData(prev => {
       let boulderPos: { x: number, y: number } | null = null;
+      outer:
       for (let y = 0; y < MAP_HEIGHT; y++) {
         for (let x = 0; x < MAP_WIDTH; x++) {
           if (prev.tiles[y][x] === TileType.BOULDER) {
             boulderPos = { x, y };
+            break outer;
           }
         }
       }
