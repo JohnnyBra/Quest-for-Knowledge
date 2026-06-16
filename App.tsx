@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy, Subject } from './types';
-import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, getPlayerSpriteUrl } from './constants';
+import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, getPlayerSpriteUrl, MAP1_BOULDER_START } from './constants';
 import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
@@ -714,6 +714,30 @@ export default function App() {
     showNotification(levelData.title);
   };
 
+  const resetMap1BoulderIfNeeded = () => {
+    setMapData(prev => {
+      let boulderPos: { x: number, y: number } | null = null;
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (prev.tiles[y][x] === TileType.BOULDER) {
+            boulderPos = { x, y };
+          }
+        }
+      }
+
+      // No hay roca en el mapa => el acertijo ya está resuelto (BUTTON_PRESSED). No tocar.
+      if (!boulderPos) return prev;
+
+      // La roca ya está en su sitio inicial. No tocar.
+      if (boulderPos.x === MAP1_BOULDER_START.x && boulderPos.y === MAP1_BOULDER_START.y) return prev;
+
+      const newTiles = prev.tiles.map(row => [...row]);
+      newTiles[boulderPos.y][boulderPos.x] = TileType.GRASS;
+      newTiles[MAP1_BOULDER_START.y][MAP1_BOULDER_START.x] = TileType.BOULDER;
+      return { ...prev, tiles: newTiles };
+    });
+  };
+
   const handleBattleVictory = (xpGained: number, remainingHp: number, stats: { correct: number, incorrect: number, superEffective: number, timeBonus: number }) => {
     const newXp = player.xp + xpGained;
     const levelUp = newXp >= (player.level * 100);
@@ -732,6 +756,9 @@ export default function App() {
         showNotification(`¡JEFE DERROTADO! ¡EL CAMINO ESTÁ LIBRE!`);
       } else {
         setActiveEnemies(prev => prev.filter(e => e.id !== currentEnemy?.id));
+        if (currentLevelIndex === 0) {
+          resetMap1BoulderIfNeeded();
+        }
       }
     }
 
