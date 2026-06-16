@@ -251,7 +251,7 @@ export default function App() {
           const nextY = finalY + dy;
           if (nextX < 0 || nextX >= MAP_WIDTH || nextY < 0 || nextY >= MAP_HEIGHT) break;
           const nextTile = mapData.tiles[nextY][nextX];
-          if ([TileType.WALL, TileType.SECRET_WALL, TileType.BOSS, TileType.PORTAL, TileType.CHEST, TileType.TRAP_WALL, TileType.DOOR_CLOSED, TileType.LOCKED_DOOR, TileType.BOULDER, TileType.BUTTON_PRESSED, TileType.SPIKE_UP].includes(nextTile)) break;
+          if ([TileType.WALL, TileType.SECRET_WALL, TileType.BOSS, TileType.CHEST, TileType.TRAP_WALL, TileType.DOOR_CLOSED, TileType.LOCKED_DOOR, TileType.BOULDER, TileType.BUTTON_PRESSED, TileType.SPIKE_UP].includes(nextTile)) break;
           // check enemy collision
           if (activeEnemies.some(e => e.x === nextX && e.y === nextY)) break;
           

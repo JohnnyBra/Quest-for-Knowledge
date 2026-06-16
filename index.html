@@ -58,6 +58,11 @@
         animation: spin-slow 8s linear infinite;
       }
 
+      /* Show D-pad on touch devices, hide on mouse-driven (desktop) */
+      @media (pointer: fine) {
+        .dpad { display: none; }
+      }
+
       /* Custom scrollbar for retro feel */
       ::-webkit-scrollbar {
         width: 10px;

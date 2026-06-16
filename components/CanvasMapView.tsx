@@ -322,13 +322,13 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
         <canvas ref={canvasRef} className="block w-full h-full" />
       </div>
 
-       {/* D-Pad Overlay */}
-      <div className="fixed bottom-6 right-6 w-36 h-36 md:hidden z-[100] opacity-90 touch-none select-none">
+       {/* D-Pad Overlay — visible on all touch devices, hidden on mouse/pointer:fine (desktop) */}
+      <div className="dpad fixed bottom-6 right-6 w-36 h-36 z-[100] opacity-90 select-none">
         <div className="relative w-full h-full bg-black/40 rounded-full backdrop-blur-sm border border-white/20 p-2 shadow-xl">
-          <button onClick={() => onMove(0, -1)} className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-t-lg flex items-center justify-center"><ChevronUp className="text-white" size={32} /></button>
-          <button onClick={() => onMove(0, 1)} className="absolute bottom-1 left-1/2 -translate-x-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-b-lg flex items-center justify-center"><ChevronDown className="text-white" size={32} /></button>
-          <button onClick={() => onMove(-1, 0)} className="absolute left-1 top-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-l-lg flex items-center justify-center"><ChevronLeft className="text-white" size={32} /></button>
-          <button onClick={() => onMove(1, 0)} className="absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-r-lg flex items-center justify-center"><ChevronRight className="text-white" size={32} /></button>
+          <button onTouchStart={(e) => { e.preventDefault(); onMove(0, -1); }} onClick={() => onMove(0, -1)} className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-t-lg flex items-center justify-center"><ChevronUp className="text-white" size={32} /></button>
+          <button onTouchStart={(e) => { e.preventDefault(); onMove(0, 1); }} onClick={() => onMove(0, 1)} className="absolute bottom-1 left-1/2 -translate-x-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-b-lg flex items-center justify-center"><ChevronDown className="text-white" size={32} /></button>
+          <button onTouchStart={(e) => { e.preventDefault(); onMove(-1, 0); }} onClick={() => onMove(-1, 0)} className="absolute left-1 top-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-l-lg flex items-center justify-center"><ChevronLeft className="text-white" size={32} /></button>
+          <button onTouchStart={(e) => { e.preventDefault(); onMove(1, 0); }} onClick={() => onMove(1, 0)} className="absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 bg-gray-800 border-2 border-white/30 rounded-r-lg flex items-center justify-center"><ChevronRight className="text-white" size={32} /></button>
         </div>
       </div>
     </div>

@@ -82,6 +82,10 @@ const generateMap2 = (): TileType[][] => {
         map[rowY][x] = Math.random() < 0.05 ? TileType.TRAP_WALL : TileType.WALL;
       }
     }
+    // Guarantee column 30 is always open: sliding right stops at x=30 (before
+    // the boundary wall at x=31), so without this the player can never align
+    // with the random gap and the level becomes unsolvable.
+    map[rowY][30] = TileType.ICE;
   });
   return map;
 };
