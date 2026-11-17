@@ -1,10 +1,5 @@
 import { TileType, Subject, Item, ItemType } from './types';
 
-export const getPlayerSpriteUrl = (level: number) => {
-  if (level >= 7) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/445.gif"; // Garchomp
-  if (level >= 4) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/257.gif"; // Blaziken
-  return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif"; // Gallade
-};
 
 export const TILE_SIZE = 48; // pixels
 export const MAP_WIDTH = 32;
@@ -175,7 +170,7 @@ const generateMap5 = (): TileType[][] => {
   return map;
 };
 
-export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW';
+export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW' | 'CELLAR';
 
 interface LevelConfig {
   generateMap: () => TileType[][];
@@ -213,7 +208,7 @@ export const LEVELS: LevelConfig[] = [
     generateMap: generateMap3,
     start: { x: 16, y: 10 },
     title: "NIVEL 3: EL SÓTANO DEL CAOS",
-    theme: 'DUNGEON',
+    theme: 'CELLAR',
     bossPos: { x: 3, y: 20 },
     portalPos: { x: 30, y: 20 },
     enemyCount: 20,
@@ -223,7 +218,7 @@ export const LEVELS: LevelConfig[] = [
     generateMap: generateMap4,
     start: { x: 5, y: 10 },
     title: "NIVEL 4: EL ENIGMA DE LAS ROCAS",
-    theme: 'CLASSROOM',
+    theme: 'GARDEN',
     bossPos: { x: 29, y: 10 },
     portalPos: { x: 30, y: 10 },
     enemyCount: 15,
@@ -243,39 +238,51 @@ export const LEVELS: LevelConfig[] = [
 
 export const ENEMY_TEMPLATES = [
   // Original Enemies
-  { name: "Goblin Numérico", weakness: Subject.LANGUAGE, spriteId: "goblin", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/302.gif", description: "Un pequeño pero molesto goblin que te ataca con fracciones y sumas." },
-  { name: "Ogro de las Letras", weakness: Subject.MATH, spriteId: "ogre", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/68.gif", description: "Un enorme ogro que lanza verbos irregulares y faltas de ortografía." },
-  { name: "Limo Tóxico", weakness: Subject.KNOWLEDGE, spriteId: "slime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/88.gif", description: "Un residuo radiactivo que no sabe reciclar ni conoce el ciclo del agua." },
-  { name: "Esqueleto Confuso", weakness: Subject.KNOWLEDGE, spriteId: "skeleton", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/105.gif", description: "Un esqueleto antiguo que ha olvidado de dónde vienen sus huesos." },
+  { name: "Goblin Numérico", weakness: Subject.LANGUAGE, spriteId: "goblin", spriteUrl: "/arte/monstruos/goblin.webp", description: "Un pequeño pero molesto goblin que te ataca con fracciones y sumas." },
+  { name: "Ogro de las Letras", weakness: Subject.MATH, spriteId: "ogre", spriteUrl: "/arte/monstruos/ogre.webp", description: "Un enorme ogro que lanza verbos irregulares y faltas de ortografía." },
+  { name: "Limo Tóxico", weakness: Subject.KNOWLEDGE, spriteId: "slime", spriteUrl: "/arte/monstruos/slime.webp", description: "Un residuo radiactivo que no sabe reciclar ni conoce el ciclo del agua." },
+  { name: "Esqueleto Confuso", weakness: Subject.KNOWLEDGE, spriteId: "skeleton", spriteUrl: "/arte/monstruos/skeleton.webp", description: "Un esqueleto antiguo que ha olvidado de dónde vienen sus huesos." },
 
   // New Enemies
-  { name: "Murciélago de la Duda", weakness: Subject.MATH, spriteId: "bat", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/41.gif", description: "En la oscuridad de la cueva, este murciélago se alimenta de tus dudas en las multiplicaciones." },
-  { name: "Fantasma de la Ignorancia", weakness: Subject.LANGUAGE, spriteId: "ghost", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/92.gif", description: "Un ente aterrador que susurra palabras mal escritas para confundirte." },
-  { name: "Serpiente Silbante", weakness: Subject.KNOWLEDGE, spriteId: "snake", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/23.gif", description: "Es rápida y venenosa, pero una buena comprensión del ecosistema puede detenerla." },
-  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/625.gif", description: "Un caballero acorazado con geometría; solo un buen matemático puede abrir una brecha en su armadura." },
+  { name: "Murciélago de la Duda", weakness: Subject.MATH, spriteId: "bat", spriteUrl: "/arte/monstruos/bat.webp", description: "En la oscuridad de la cueva, este murciélago se alimenta de tus dudas en las multiplicaciones." },
+  { name: "Fantasma de la Ignorancia", weakness: Subject.LANGUAGE, spriteId: "ghost", spriteUrl: "/arte/monstruos/ghost.webp", description: "Un ente aterrador que susurra palabras mal escritas para confundirte." },
+  { name: "Serpiente Silbante", weakness: Subject.KNOWLEDGE, spriteId: "snake", spriteUrl: "/arte/monstruos/snake.webp", description: "Es rápida y venenosa, pero una buena comprensión del ecosistema puede detenerla." },
+  { name: "Caballero Oscuro", weakness: Subject.MATH, spriteId: "knight", spriteUrl: "/arte/monstruos/knight.webp", description: "Un caballero acorazado con geometría; solo un buen matemático puede abrir una brecha en su armadura." },
 
   // Even More Enemies
-  { name: "Gólem de la Piedra Angular", weakness: Subject.MATH, spriteId: "golem", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/76.gif", description: "Formado por rocas pesadísimas, solo unos buenos cálculos arquitectónicos pueden desmontarlo." },
-  { name: "Bruja de la Caligrafía", weakness: Subject.LANGUAGE, spriteId: "witch", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/429.gif", description: "Vuela sobre una regla y maldice a quienes escriben sin acentos." },
-  { name: "Mago del Tiempo", weakness: Subject.KNOWLEDGE, spriteId: "wizard", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/65.gif", description: "Intenta confundirte con fechas históricas erróneas y capitales de países perdidos." },
-  { name: "Árbol Engañoso", weakness: Subject.KNOWLEDGE, spriteId: "tree", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/185.gif", description: "Finge ser una planta inofensiva, pero está lleno de preguntas sobre la fotosíntesis." },
-  { name: "Sabueso Infernal", weakness: Subject.MATH, spriteId: "hound", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/229.gif", description: "Un perro fiero que persigue a los que no se saben la tabla del 7." },
-  { name: "Mimo del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/122.gif", description: "Un mimo mudo que reta tus habilidades para identificar sinónimos y antónimos." },
+  { name: "Gólem de la Piedra Angular", weakness: Subject.MATH, spriteId: "golem", spriteUrl: "/arte/monstruos/golem.webp", description: "Formado por rocas pesadísimas, solo unos buenos cálculos arquitectónicos pueden desmontarlo." },
+  { name: "Bruja de la Caligrafía", weakness: Subject.LANGUAGE, spriteId: "witch", spriteUrl: "/arte/monstruos/witch.webp", description: "Vuela sobre una regla y maldice a quienes escriben sin acentos." },
+  { name: "Mago del Tiempo", weakness: Subject.KNOWLEDGE, spriteId: "wizard", spriteUrl: "/arte/monstruos/wizard.webp", description: "Intenta confundirte con fechas históricas erróneas y capitales de países perdidos." },
+  { name: "Árbol Engañoso", weakness: Subject.KNOWLEDGE, spriteId: "tree", spriteUrl: "/arte/monstruos/tree.webp", description: "Finge ser una planta inofensiva, pero está lleno de preguntas sobre la fotosíntesis." },
+  { name: "Sabueso Infernal", weakness: Subject.MATH, spriteId: "hound", spriteUrl: "/arte/monstruos/hound.webp", description: "Un perro fiero que persigue a los que no se saben la tabla del 7." },
+  { name: "Espectro del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "/arte/monstruos/mime.webp", description: "Un espectro encapuchado que se traga las palabras; reta a quien sepa encontrar sinónimos y antónimos." },
 
   // Level 2+ Weaknesses (English & PE)
-  { name: "Libro de Gramática Vivo", weakness: Subject.ENGLISH, spriteId: "english1", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/201.gif", description: "Mastica verbos irregulares y te escupe condicionales en inglés." },
-  { name: "Tetera Espectral", weakness: Subject.ENGLISH, spriteId: "english2", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/854.gif", description: "Una tetera británica furiosa que exige la hora exacta en inglés." },
-  { name: "Zapatilla Veloz", weakness: Subject.PHYSICAL_ED, spriteId: "pe1", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/106.gif", description: "Una zapatilla de deporte poseída que no para de hacer sprints." },
-  { name: "Balón Prisionero", weakness: Subject.PHYSICAL_ED, spriteId: "pe2", spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/100.gif", description: "Lanza balonazos a quienes no conocen las reglas del juego y el calentamiento." }
+  { name: "Libro de Gramática Vivo", weakness: Subject.ENGLISH, spriteId: "english1", spriteUrl: "/arte/monstruos/english1.webp", description: "Mastica verbos irregulares y te escupe condicionales en inglés." },
+  { name: "Autómata del Reloj", weakness: Subject.ENGLISH, spriteId: "english2", spriteUrl: "/arte/monstruos/english2.webp", description: "Un gólem de engranajes con un reloj en el pecho que exige la hora exacta en inglés." },
+  { name: "Centauro Veloz", weakness: Subject.PHYSICAL_ED, spriteId: "pe1", spriteUrl: "/arte/monstruos/pe1.webp", description: "Un centauro que no para de hacer sprints; solo quien conoce las reglas del deporte y del calentamiento puede frenarlo." },
+  { name: "Balón Prisionero", weakness: Subject.PHYSICAL_ED, spriteId: "pe2", spriteUrl: "/arte/monstruos/pe2.webp", description: "Lanza balonazos a quienes no conocen las reglas del juego y el calentamiento." }
 ];
 
 export const BOSS_TEMPLATE = {
   name: "Director del Caos",
   weakness: Subject.MATH,
   spriteId: "boss",
-  spriteUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif",
+  spriteUrl: "/arte/monstruos/boss.webp",
   description: "El enemigo definitivo de la escuela, se dice que su poder proviene del fracaso escolar."
 };
+
+// La llave del suelo (nivel 5). No va en GAME_ITEMS para que no salga en los cofres.
+export const LLAVE_MAESTRA: Item = {
+  id: 'llave_maestra',
+  name: 'Llave Maestra',
+  type: ItemType.KEY,
+  value: 0,
+  description: 'Abre una puerta cerrada con candado.',
+  icon: 'key'
+};
+
+export const arteObjeto = (item: Item) => item.type === ItemType.KEY ? '/arte/mapa/llave.webp' : `/arte/objetos/${item.id}.webp`;
 
 export const GAME_ITEMS: Item[] = [
   {

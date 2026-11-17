@@ -20,7 +20,7 @@ npm start
 
 Set `GEMINI_API_KEY` in `.env.local` before running. (The key is injected via `vite.config.ts` as `process.env.GEMINI_API_KEY`, but the Gemini API is not currently called — all questions come from the static bank in `data/questions.ts`.)
 
-There are no automated tests.
+`npm test` runs `tests/*.test.ts` with `tsx --test` (hero choice, map/fog logic, and that every hero, monster and item has its art in `public/arte/`).
 
 ## Architecture
 
@@ -51,18 +51,21 @@ App.tsx (root state machine)
 | `data/questions.ts` | Static bank of educational questions (Math, Lengua, C. del Medio, Inglés, Ed. Física) with `explorer`/`boss` difficulty tiers |
 | `data/narrative.ts` | Story text shown in the NARRATIVE state |
 | `server.ts` | Express server: `/api/leaderboard` (GET) and `/api/score` (POST) backed by `db.json` flat-file; also mounts Vite dev middleware |
-| `components/CanvasMapView.tsx` | Active canvas renderer for the 32×22 tile map with fog-of-war, sprite caching, and arrow-key + touch controls |
-| `components/MapView.tsx` | Legacy CSS/DOM-based renderer — not used by `App.tsx`, kept for reference |
+| `components/CanvasMapView.tsx` | Canvas renderer: painted floor/wall textures per theme, objects, smooth movement, lantern light, 3-layer fog, particles; arrow keys + touch D-pad |
+| `mapaLogica.ts` | Pure map helpers: wall faces, torches, fog fade (`RevelarNiebla`) |
+| `heroes.ts` | 4 skins × chico/chica × 3 forms (`getHeroArt`), choice saved per name in localStorage |
+| `components/HeroSelect.tsx` | Hero picker shown after login |
+| `public/quest.css` | Gremio visual system (tokens, panels, buttons, HUD, battle animations); art in `public/arte/` (made in Canva) |
 | `components/Battle.tsx` | Turn-based battle UI: subject selection → question fetch → ATB timer → damage calculation |
 | `components/Gallery.tsx` | Monster bestiary (shows defeated enemies) |
-| `components/RetroUI.tsx` | Shared retro-styled `RetroBox` and `RetroButton` primitives |
+| `components/RetroUI.tsx` | Shared Gremio primitives: `RetroBox` (panel), `RetroButton`, `Estandarte`, `Fondo`, `Icono` |
 
 ### Level system
 
 `LEVELS` in `constants.ts` is an array of `LevelConfig` objects. Each entry has:
 - `generateMap()` — procedural map generator returning `TileType[][]` (regenerated fresh each load)
 - `start`, `bossPos`, `portalPos` — fixed coordinates (boss and portal are placed after generation; a `freeArea()` pass clears walls around them)
-- `theme` — `'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW'` (controls canvas tile colors in `CanvasMapView`)
+- `theme` — `'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW'` (picks the painted textures in `CanvasMapView`; GARDEN is unused and falls back to the library)
 - `enemyCount`, `chestCount`
 
 There are 5 levels. On level 1, enemy weaknesses are restricted to Math/Lengua/C. del Medio only; Inglés and Ed. Física unlock from level 2 onward.
@@ -103,7 +106,7 @@ Battles are triggered in `App.tsx` and handed off to `Battle.tsx`. The flow:
 ### Player progression
 
 - XP from battles → level-up at `level × 100` XP threshold
-- Levels 1–3: Gallade sprite, 4–6: Blaziken, 7+: Garchomp (`getPlayerSpriteUrl()` in `constants.ts`)
+- Levels 1–3 / 4–6 / 7+ show the chosen hero's forms 1 / 2 / 3 (`getHeroArt()` in `heroes.ts`)
 - On level-up: +20 max HP (restored to full), +5 attack
 - Evolution animation fires at levels 4 and 7; after animation a shockwave pushes nearby enemies 3 tiles away
 

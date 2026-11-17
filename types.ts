@@ -1,6 +1,8 @@
+import type { HeroChoice } from './heroes';
 
 export enum GameState {
   START_SCREEN,
+  HERO_SELECT,
   NARRATIVE,
   MAP,
   BATTLE,
@@ -76,6 +78,7 @@ export interface Player extends Entity {
   startTime: number;
   isSliding?: boolean;
   defeatedEnemies: string[];
+  hero: HeroChoice;
 }
 
 export interface Enemy {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, Enemy, Question, Subject } from '../types';
 import { generateEducationalContent } from '../services/geminiService';
-import { Calculator, Book, Globe, Heart, MessageCircle, Dumbbell } from 'lucide-react';
-import { getPlayerSpriteUrl } from '../constants';
+import { Calculator, Book, Globe, MessageCircle, Dumbbell } from 'lucide-react';
+import { getHeroArt } from '../heroes';
 
 interface BattleProps {
   player: Player;
@@ -26,6 +26,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
   const [playerAnim, setPlayerAnim] = useState('');
   const [enemyAnim, setEnemyAnim] = useState('');
+  const [golpe, setGolpe] = useState<{ en: 'heroe' | 'enemigo'; texto: string; id: number } | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(15);
   const maxTime = 15;
@@ -122,11 +123,12 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         setBattleStats(s => ({ ...s, correct: s.correct + 1, timeBonus: s.timeBonus + timeBonusPoints }));
       }
 
-      setPlayerAnim('anim-atk-player');
+      setPlayerAnim('anim-atk-heroe');
       setTimeout(() => {
         setPlayerAnim('');
-        setEnemyAnim('anim-dmg');
+        setEnemyAnim('anim-dano');
 
+        setGolpe({ en: 'enemigo', texto: `-${finalDamage}`, id: Date.now() });
         const newHp = Math.max(0, enemyHp - finalDamage);
         setEnemyHp(newHp);
 
@@ -166,11 +168,11 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         setPhase('ENEMY_TURN');
         setMessage(`${enemy.name} ataca...`);
         setTimeout(() => {
-          setEnemyAnim('anim-atk-enemy');
+          setEnemyAnim('anim-atk-enemigo');
 
           setTimeout(() => {
             setEnemyAnim('');
-            setPlayerAnim('anim-dmg');
+            setPlayerAnim('anim-dano');
 
             // REDUCED DAMAGE FORMULA
             // Old: 5 + (diff * 3) + random(5)
@@ -180,6 +182,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
             // Ensure at least 1 damage unless defense is extremely high
             const totalDmg = Math.max(1, (baseEnemyDmg + variance) - Math.floor(player.stats.defense / 2));
 
+            setGolpe({ en: 'heroe', texto: `-${totalDmg}`, id: Date.now() });
             const newPlayerHp = Math.max(0, playerHp - totalDmg);
             setPlayerHp(newPlayerHp);
             onHpUpdate(newPlayerHp);
@@ -204,135 +207,92 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     }
   };
 
-  const renderHearts = (current: number, max: number) => {
-    const heartCount = 5;
-    const percentage = Math.max(0, current / max);
-    const filled = Math.ceil(percentage * heartCount);
-    return (
-      <div className="flex gap-1">
-        {[...Array(heartCount)].map((_, i) => (
-          <Heart key={i} size={16} className={`${i < filled ? "text-red-500 fill-current" : "text-gray-800 fill-gray-900"} drop-shadow-sm`} />
-        ))}
+  const MATERIAS = [
+    { s: Subject.MATH, icono: <Calculator size={28} />, veta: '#ffb24a', desde: 1 },
+    { s: Subject.LANGUAGE, icono: <Book size={28} />, veta: '#ff7a9a', desde: 1 },
+    { s: Subject.KNOWLEDGE, icono: <Globe size={28} />, veta: '#6fe3a1', desde: 1 },
+    { s: Subject.ENGLISH, icono: <MessageCircle size={28} />, veta: '#7fb6ff', desde: 4 },
+    { s: Subject.PHYSICAL_ED, icono: <Dumbbell size={28} />, veta: '#ff9a4d', desde: 7 },
+  ].filter(m => player.level >= m.desde);
+
+  const Placa = ({ nombre, hp, max, color, alinear }: { nombre: string; hp: number; max: number; color: string; alinear: string }) => (
+    <div className={`placa w-[min(46%,260px)] ${alinear}`}>
+      <b>{nombre}</b>
+      <div className="barra mt-1" style={{ height: 14 }} role="meter" aria-label={`Vida de ${nombre}`} aria-valuemin={0} aria-valuemax={max} aria-valuenow={hp}>
+        <i style={{ width: `${Math.max(0, (hp / max) * 100)}%`, background: color }} />
+        <span style={{ fontSize: '0.66rem' }}>{hp} / {max}</span>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
-    <div className="flex flex-col flex-1 w-full max-w-5xl mx-auto border-4 border-[#111] md:border-[#2d2d2d] bg-[#1a1a1a] rounded-lg shadow-2xl overflow-hidden font-retro min-h-[60vh] md:min-h-[500px]">
+    <div className="panel !p-0 flex flex-col flex-1 w-full max-w-5xl mx-auto overflow-hidden min-h-[60vh] md:min-h-[520px]">
 
-      {/* 1. SCENE AREA */}
-      <div className="relative flex-1 min-h-[40vh] md:min-h-0 w-full overflow-hidden shrink-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#2e1065_0%,#7c3aed_40%,#db2777_70%,#f59e0b_100%)]"></div>
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-24 h-24 bg-yellow-200 rounded-full blur-sm opacity-90 mix-blend-screen"></div>
-        <div className="absolute bottom-0 w-full h-12 bg-[#0f172a] z-0" style={{ clipPath: "polygon(0% 100%, 0% 20%, 15% 35%, 30% 15%, 50% 40%, 70% 20%, 85% 30%, 100% 10%, 100% 100%)" }}></div>
-
-        <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-20 px-2">
-          <div className="flex flex-col bg-black/40 p-1 rounded backdrop-blur-sm border border-white/10">
-            <span className="text-[10px] text-white font-bold drop-shadow-md mb-1">{enemy.name}</span>
-            {renderHearts(enemyHp, enemy.maxHp)}
-            <div className="w-full bg-gray-700 h-1 mt-1 rounded-full overflow-hidden">
-              <div className="bg-red-500 h-full transition-all duration-300" style={{ width: `${(enemyHp / enemy.maxHp) * 100}%` }}></div>
-            </div>
-          </div>
-          <div className="flex flex-col items-end bg-black/40 p-1 rounded backdrop-blur-sm border border-white/10">
-            <span className="text-[10px] text-white font-bold drop-shadow-md mb-1">{player.name}</span>
-            {renderHearts(playerHp, player.maxHp)}
-            <div className="w-full bg-gray-700 h-1 mt-1 rounded-full overflow-hidden">
-              <div className="bg-green-500 h-full transition-all duration-300" style={{ width: `${(playerHp / player.maxHp) * 100}%` }}></div>
-            </div>
-          </div>
+      {/* 1. ESCENA */}
+      <div className="arena relative flex-1 min-h-[42vh] md:min-h-[330px] w-full shrink-0">
+        <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-20 gap-2">
+          <Placa nombre={enemy.name} hp={enemyHp} max={enemy.maxHp} color="linear-gradient(90deg,#7d1820,#ff5c5c)" alinear="" />
+          <Placa nombre={player.name} hp={playerHp} max={player.maxHp} color="linear-gradient(90deg,#1f8a55,#6fe3a1)" alinear="text-right" />
         </div>
 
-        <div className={`absolute bottom-4 left-4 md:left-24 z-10 ${enemyAnim === 'anim-atk-enemy' ? 'anim-atk-enemy' : ''} ${enemyAnim === 'anim-dmg' ? 'anim-dmg' : 'animate-bounce-slow'}`}>
-          <img src={enemy.sprite} alt="Enemy" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
+        <div className={`pedestal absolute bottom-5 left-[4%] md:left-[12%] z-10 ${enemy.isBoss ? 'aura-jefe' : ''} ${enemyHp === 0 ? 'anim-ceniza' : enemyAnim}`}>
+          <img src={enemy.sprite} alt={enemy.name} className={`luchador ${enemy.isBoss ? 'jefe' : ''} ${enemyAnim || enemyHp === 0 ? '' : 'respira'}`} />
+          {golpe?.en === 'enemigo' && <><span key={`c${golpe.id}`} className="chispazo" /><span key={golpe.id} className="numero-dano">{golpe.texto}</span></>}
         </div>
 
-        <div className={`absolute bottom-4 right-4 md:right-24 z-10 ${playerAnim} ${playerAnim === '' ? 'animate-bounce-slow' : ''}`}>
-          <img src={getPlayerSpriteUrl(player.level)} alt="Player" className="w-24 h-24 md:w-48 md:h-48 object-contain drop-shadow-2xl" style={{ imageRendering: 'pixelated' }} />
+        <div className={`pedestal absolute bottom-5 right-[4%] md:right-[12%] z-10 ${playerAnim}`}>
+          <img src={getHeroArt(player.hero, player.level)} alt={player.name} className={`luchador ${playerAnim ? '' : 'respira'}`} style={{ scale: '-1 1', animationDelay: '-1.1s' }} />
+          {golpe?.en === 'heroe' && <><span key={`c${golpe.id}`} className="chispazo rojo" /><span key={golpe.id} className="numero-dano">{golpe.texto}</span></>}
         </div>
 
         {(phase === 'RESULT_PLAYER' || phase === 'RESULT_ENEMY') && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-30">
-            <button onClick={handleContinue} className="bg-yellow-500 border-b-4 border-yellow-700 text-black font-bold py-3 px-8 rounded animate-pulse shadow-xl hover:bg-yellow-400 text-sm md:text-base">
-              CONTINUAR
-            </button>
+          <div className="absolute inset-0 flex items-end md:items-center justify-center pb-6 md:pb-0 z-30" style={{ background: 'rgba(5,3,12,.35)' }}>
+            <button onClick={handleContinue} className="btn-oro min-w-[220px]" autoFocus>Continuar</button>
           </div>
         )}
       </div>
 
-      {/* 2. MESSAGE BOX & ATB BAR */}
-      <div className="bg-[#3b82f6] border-y-4 border-[#1e40af] p-3 w-full min-h-[80px] flex flex-col items-center justify-center relative shadow-lg z-10">
-        <div className="w-full max-w-full px-2 text-center flex-1 flex items-center justify-center">
-          <p className="text-white text-[11px] md:text-sm font-bold tracking-wide drop-shadow-md leading-relaxed inline-block w-full">
-            {message}
-          </p>
-        </div>
+      {/* 2. MENSAJE Y RELOJ */}
+      <div className="mensaje" role="status" aria-live="polite">
+        {message}
         {phase === 'ANSWERING' && (
-          <div className="w-full h-2 bg-gray-900 absolute bottom-0 left-0">
-             <div 
-               className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 5 ? 'bg-red-500 animate-pulse' : 'bg-yellow-400'}`} 
-               style={{ width: `${(timeLeft / maxTime) * 100}%` }}
-             ></div>
+          <div className={`reloj ${timeLeft <= 5 ? 'apura' : ''}`} aria-hidden="true">
+            <i style={{ width: `${(timeLeft / maxTime) * 100}%` }} />
           </div>
         )}
       </div>
 
-      {/* 3. ACTION DECK */}
-      <div className="flex-1 bg-[#222] p-3 flex flex-col justify-center overflow-hidden">
-
+      {/* 3. ACCIONES */}
+      <div className="p-3 md:p-4 flex flex-col justify-center" style={{ background: 'rgba(0,0,0,.25)' }}>
         {phase === 'SELECT_SUBJECT' && (
-          <div className={`grid ${player.level >= 7 ? 'grid-cols-5' : player.level >= 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-2 md:gap-3 h-full max-h-[180px]`}>
-            <button onClick={() => handleSubjectSelect(Subject.MATH)} className="bg-gradient-to-b from-amber-600 to-amber-800 border-2 border-amber-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(146,64,14)] active:shadow-none active:translate-y-[4px] group">
-              <Calculator className="text-amber-200" size={24} />
-              <span className="text-[8px] md:text-[10px] font-bold text-amber-100 uppercase text-center">Matemáticas</span>
-            </button>
-
-            <button onClick={() => handleSubjectSelect(Subject.LANGUAGE)} className="bg-gradient-to-b from-rose-700 to-rose-900 border-2 border-rose-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(159,18,57)] active:shadow-none active:translate-y-[4px] group">
-              <Book className="text-rose-200" size={24} />
-              <span className="text-[8px] md:text-[10px] font-bold text-rose-100 uppercase text-center">Lengua</span>
-            </button>
-
-            <button onClick={() => handleSubjectSelect(Subject.KNOWLEDGE)} className="bg-gradient-to-b from-emerald-700 to-emerald-900 border-2 border-emerald-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(6,78,59)] active:shadow-none active:translate-y-[4px] group">
-              <Globe className="text-emerald-200" size={24} />
-              <span className="text-[8px] md:text-[10px] font-bold text-emerald-100 uppercase text-center">C. del Medio</span>
-            </button>
-
-            {player.level >= 4 && (
-              <button onClick={() => handleSubjectSelect(Subject.ENGLISH)} className="bg-gradient-to-b from-indigo-700 to-indigo-900 border-2 border-indigo-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(49,46,129)] active:shadow-none active:translate-y-[4px] group">
-                <MessageCircle className="text-indigo-200" size={24} />
-                <span className="text-[8px] md:text-[10px] font-bold text-indigo-100 uppercase text-center">Inglés</span>
+          <div className="grid gap-2 md:gap-3" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${MATERIAS.length > 3 ? 104 : 96}px, 1fr))` }}>
+            {MATERIAS.map(m => (
+              <button key={m.s} className="materia" style={{ '--veta': m.veta } as React.CSSProperties} onClick={() => handleSubjectSelect(m.s)}>
+                {m.icono}
+                <span>{m.s}</span>
               </button>
-            )}
-
-            {player.level >= 7 && (
-              <button onClick={() => handleSubjectSelect(Subject.PHYSICAL_ED)} className="bg-gradient-to-b from-orange-700 to-orange-900 border-2 border-orange-400 rounded-lg flex flex-col items-center justify-center gap-2 p-1 active:scale-95 transition-transform shadow-[0_4px_0_rgb(124,45,18)] active:shadow-none active:translate-y-[4px] group">
-                <Dumbbell className="text-orange-200" size={24} />
-                <span className="text-[8px] md:text-[10px] font-bold text-orange-100 uppercase text-center">Ed. Física</span>
-              </button>
-            )}
+            ))}
           </div>
         )}
 
         {phase === 'ANSWERING' && question && (
-          <div className="flex flex-col gap-2 h-full overflow-y-auto pr-1 custom-scrollbar pb-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {question.options.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleAnswer(idx)}
-                className="w-full bg-[#333] hover:bg-[#444] border-l-4 border-[#555] hover:border-yellow-500 text-white text-[10px] md:text-sm py-2.5 px-3 rounded-r text-left shadow-sm active:bg-[#222] transition-colors leading-tight"
-              >
-                {opt}
+              <button key={idx} onClick={() => handleAnswer(idx)} className="respuesta">
+                <span className="letra">{'ABCD'[idx]}</span>
+                <span>{opt}</span>
               </button>
             ))}
           </div>
         )}
 
         {(phase !== 'SELECT_SUBJECT' && phase !== 'ANSWERING') && (
-          <div className="flex items-center justify-center h-full text-gray-500 text-xs animate-pulse">
-            ...
+          <div className="flex items-center justify-center min-h-[92px] gap-2" style={{ color: 'var(--tenue)' }} aria-hidden="true">
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--runa)' }} />
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--runa)', animationDelay: '.2s' }} />
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--runa)', animationDelay: '.4s' }} />
           </div>
         )}
-
       </div>
     </div>
   );

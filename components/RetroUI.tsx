@@ -1,5 +1,7 @@
 import React from 'react';
 
+// Piezas comunes del estilo Gremio (los nombres se mantienen para no tocar a quien las usa).
+
 interface BoxProps {
   children: React.ReactNode;
   className?: string;
@@ -7,33 +9,28 @@ interface BoxProps {
 }
 
 export const RetroBox: React.FC<BoxProps> = ({ children, className = "", title }) => (
-  <div className={`relative bg-gray-900 border-4 border-white p-4 ${className}`}>
-    {title && (
-      <div className="absolute -top-4 left-4 bg-gray-900 px-2 text-yellow-400 font-bold tracking-wider">
-        {title}
-      </div>
-    )}
+  <section className={`panel ${className}`}>
+    {title && <h2 className="panel-titulo">{title}</h2>}
     {children}
-  </div>
+  </section>
 );
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'danger' | 'success';
+  variant?: 'primary' | 'secondary' | 'danger';
 }
 
-export const RetroButton: React.FC<ButtonProps> = ({ children, variant = 'primary', className = "", ...props }) => {
-  const colors = {
-    primary: 'bg-blue-600 hover:bg-blue-500 text-white',
-    danger: 'bg-red-600 hover:bg-red-500 text-white',
-    success: 'bg-green-600 hover:bg-green-500 text-white',
-  };
+const CLASES = { primary: 'btn-oro', secondary: 'btn-cuero', danger: 'btn-peligro' };
 
-  return (
-    <button 
-      className={`border-2 border-white px-4 py-2 font-bold transition-transform active:scale-95 ${colors[variant]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
+export const RetroButton: React.FC<ButtonProps> = ({ children, variant = 'primary', className = "", ...props }) => (
+  <button className={`${CLASES[variant]} ${className}`} {...props}>{children}</button>
+);
+
+export const Estandarte = () => (
+  <div className="estandarte" aria-hidden="true"><div><span className="emblema" /></div></div>
+);
+
+export const Fondo = () => <div className="fondo" aria-hidden="true" />;
+
+export const Icono = ({ nombre, alt = '' }: { nombre: string; alt?: string }) => (
+  <img src={`/arte/iconos/${nombre}.webp`} alt={alt} width={36} height={36} />
+);
