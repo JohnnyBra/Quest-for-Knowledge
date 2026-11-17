@@ -25,3 +25,12 @@ test('los 24 héroes tienen su dibujo', () => {
     assert.ok(enPublic(getHeroArt({ skin: s.id, genero: g }, n)), getHeroArt({ skin: s.id, genero: g }, n));
   }
 });
+
+test('cada nivel tiene su tema con suelo y pared (el 4 espera el arte de las ruinas)', async () => {
+  const { LEVELS } = await import('../constants.ts');
+  const { TEMAS } = await import('../mapaLogica.ts');
+  assert.ok(new Set(LEVELS.map(l => l.theme)).size >= 4);
+  for (const l of LEVELS) for (const f of [TEMAS[l.theme].suelo, TEMAS[l.theme].pared]) {
+    assert.ok(enPublic(`/arte/mapa/${f}.webp`), `falta ${f}`);
+  }
+});

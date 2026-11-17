@@ -170,7 +170,7 @@ const generateMap5 = (): TileType[][] => {
   return map;
 };
 
-export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW';
+export type LevelTheme = 'CLASSROOM' | 'GARDEN' | 'DUNGEON' | 'SNOW' | 'CELLAR';
 
 interface LevelConfig {
   generateMap: () => TileType[][];
@@ -208,7 +208,7 @@ export const LEVELS: LevelConfig[] = [
     generateMap: generateMap3,
     start: { x: 16, y: 10 },
     title: "NIVEL 3: EL SÓTANO DEL CAOS",
-    theme: 'DUNGEON',
+    theme: 'CELLAR',
     bossPos: { x: 3, y: 20 },
     portalPos: { x: 30, y: 20 },
     enemyCount: 20,
@@ -218,7 +218,7 @@ export const LEVELS: LevelConfig[] = [
     generateMap: generateMap4,
     start: { x: 5, y: 10 },
     title: "NIVEL 4: EL ENIGMA DE LAS ROCAS",
-    theme: 'CLASSROOM',
+    theme: 'CLASSROOM', // ponytail: pasa a 'GARDEN' (ruinas) cuando estén ruinas-suelo y ruinas-pared
     bossPos: { x: 29, y: 10 },
     portalPos: { x: 30, y: 10 },
     enemyCount: 15,

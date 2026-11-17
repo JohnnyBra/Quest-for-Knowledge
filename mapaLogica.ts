@@ -1,6 +1,19 @@
 // Lógica pura del dibujo del mapa: qué casillas parecen muro, dónde va la cara frontal y las antorchas,
 // y cuánto tapa la niebla cada casilla (con fundido al descubrirla).
 import { TileType } from './types';
+import type { LevelTheme } from './constants';
+
+export type Particula = 'polvo' | 'nieve' | 'ascua' | 'luciernaga';
+export interface Tema { suelo: string; pared: string; techo: string; luz: string; brillo: number; niebla: string; nube: string; particula: Particula }
+
+// Un tema por nivel: biblioteca (1), patio nevado (2), sótano (3), ruinas de piedra (4), calabozo (5).
+export const TEMAS: Record<LevelTheme, Tema> = {
+  CLASSROOM: { suelo: 'biblioteca-suelo', pared: 'biblioteca-pared', techo: '#2b1a12', luz: '255,186,104', brillo: 0.16, niebla: '14,10,26', nube: '150,130,210', particula: 'polvo' },
+  SNOW: { suelo: 'nieve-suelo', pared: 'nieve-pared', techo: '#26324a', luz: '214,232,255', brillo: 0.05, niebla: '26,32,50', nube: '170,190,225', particula: 'nieve' },
+  CELLAR: { suelo: 'sotano-suelo', pared: 'sotano-pared', techo: '#24140e', luz: '255,160,80', brillo: 0.18, niebla: '16,10,8', nube: '150,110,90', particula: 'ascua' },
+  GARDEN: { suelo: 'ruinas-suelo', pared: 'ruinas-pared', techo: '#1b2418', luz: '220,240,170', brillo: 0.1, niebla: '10,18,16', nube: '130,170,150', particula: 'luciernaga' },
+  DUNGEON: { suelo: 'mazmorra-suelo', pared: 'mazmorra-pared', techo: '#11101f', luz: '255,146,72', brillo: 0.2, niebla: '9,8,18', nube: '120,100,190', particula: 'ascua' },
+};
 
 export const FUNDIDO_MS = 600;
 

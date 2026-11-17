@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { TileType, Player, GameMap, ActiveEnemy } from '../types';
 import { TILE_SIZE as T, MAP_WIDTH, MAP_HEIGHT, LevelTheme, ENEMY_TEMPLATES } from '../constants';
 import { getHeroArt } from '../heroes';
-import { esMuro, caraFrontal, hayAntorcha, alphaNiebla, RevelarNiebla } from '../mapaLogica';
+import { esMuro, caraFrontal, hayAntorcha, alphaNiebla, RevelarNiebla, TEMAS } from '../mapaLogica';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MapViewProps {
@@ -12,17 +12,6 @@ interface MapViewProps {
   onMove: (dx: number, dy: number) => void;
   theme: LevelTheme;
 }
-
-type Particula = 'polvo' | 'nieve' | 'ascua';
-interface Tema { suelo: string; pared: string; techo: string; luz: string; brillo: number; niebla: string; nube: string; particula: Particula }
-
-const BIBLIOTECA: Tema = { suelo: 'biblioteca-suelo', pared: 'biblioteca-pared', techo: '#2b1a12', luz: '255,186,104', brillo: 0.16, niebla: '14,10,26', nube: '150,130,210', particula: 'polvo' };
-const TEMAS: Record<LevelTheme, Tema> = {
-  CLASSROOM: BIBLIOTECA,
-  GARDEN: BIBLIOTECA, // ningún nivel lo usa
-  SNOW: { suelo: 'nieve-suelo', pared: 'nieve-pared', techo: '#26324a', luz: '214,232,255', brillo: 0.05, niebla: '26,32,50', nube: '170,190,225', particula: 'nieve' },
-  DUNGEON: { suelo: 'mazmorra-suelo', pared: 'mazmorra-pared', techo: '#11101f', luz: '255,146,72', brillo: 0.2, niebla: '9,8,18', nube: '120,100,190', particula: 'ascua' },
-};
 
 const spriteMonstruo = (id: string) => `/arte/monstruos/${id}.webp`;
 
@@ -380,13 +369,26 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
       // 7. Ambiente: polvo dorado, nieve o ascuas
       if (!reducido) {
         for (const m of motas) {
-          if (tema.particula === 'nieve') { m.y += dt * 0.05 * m.v; m.x += dt * 0.012 * Math.sin(s + m.f); }
-          else { m.y -= dt * (tema.particula === 'ascua' ? 0.04 : 0.012) * m.v; m.x += dt * 0.01 * Math.sin(s * 0.7 + m.f); }
+          const tipo = tema.particula;
+          if (tipo === 'nieve') { m.y += dt * 0.05 * m.v; m.x += dt * 0.012 * Math.sin(s + m.f); }
+          else if (tipo === 'luciernaga') { m.x += dt * 0.02 * Math.sin(s * 0.5 + m.f * 3); m.y += dt * 0.015 * Math.cos(s * 0.4 + m.f * 2); }
+          else { m.y -= dt * (tipo === 'ascua' ? 0.04 : 0.012) * m.v; m.x += dt * 0.01 * Math.sin(s * 0.7 + m.f); }
           m.y = (m.y + 1) % 1; m.x = (m.x + 1) % 1;
-          const r = tema.particula === 'nieve' ? 1.6 + m.v * 1.4 : 1 + m.v;
-          const c = tema.particula === 'nieve' ? '240,246,255' : tema.particula === 'ascua' ? '255,150,70' : '255,214,140';
-          ctx.fillStyle = `rgba(${c},${(tema.particula === 'nieve' ? 0.75 : 0.5) * (0.6 + 0.4 * Math.sin(s * 2 + m.f))})`;
-          ctx.beginPath(); ctx.arc(m.x * cw, m.y * ch, r, 0, Math.PI * 2); ctx.fill();
+          const px = m.x * cw, py = m.y * ch;
+          if (tipo === 'luciernaga') {
+            // Luciérnagas: se encienden y se apagan, con halo
+            const a = Math.max(0, Math.sin(s * 1.6 + m.f * 5)) * 0.9;
+            if (a > 0.02) {
+              const g = ctx.createRadialGradient(px, py, 0, px, py, 9);
+              g.addColorStop(0, `rgba(230,255,150,${a})`); g.addColorStop(1, 'rgba(230,255,150,0)');
+              ctx.fillStyle = g; ctx.fillRect(px - 9, py - 9, 18, 18);
+            }
+            continue;
+          }
+          const r = tipo === 'nieve' ? 1.6 + m.v * 1.4 : 1 + m.v;
+          const c = tipo === 'nieve' ? '240,246,255' : tipo === 'ascua' ? '255,150,70' : '255,214,140';
+          ctx.fillStyle = `rgba(${c},${(tipo === 'nieve' ? 0.75 : 0.5) * (0.6 + 0.4 * Math.sin(s * 2 + m.f))})`;
+          ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
         }
       }
 
