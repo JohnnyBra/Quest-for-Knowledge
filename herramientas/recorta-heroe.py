@@ -3,6 +3,7 @@
 # Además, las zonas blancas encerradas grandes (entre arco y cuerda) también son fondo.
 # Uso: python3 herramientas/recorta-heroe.py <export.png> <salida.webp> [--solo-bordes]
 # --solo-bordes: no quita blancos encerrados (para personajes con blanco propio, como la cara del mimo).
+# --solo-grandes: solo quita blancos encerrados muy grandes (huecos de fondo, no rombos ni brillos).
 # Después mira el resultado sobre fondo oscuro: Canva a veces exporta OTRA imagen distinta de la pedida.
 import sys
 from PIL import Image, ImageFilter, ImageChops as C, ImageDraw
@@ -20,7 +21,7 @@ for x in range(0, W, 8):
 for y in range(0, H, 8):
     for x in (0, W - 1):
         if claro.getpixel((x, y)) == 255: ImageDraw.floodfill(claro, (x, y), 128)
-minimo_area = W * H if solo_bordes else W * H // 1500
+minimo_area = W * H if solo_bordes else W * H // 120 if '--solo-grandes' in sys.argv[3:] else W * H // 1500
 for y in range(0, H, 4):
     for x in range(0, W, 4):
         if claro.getpixel((x, y)) == 255:

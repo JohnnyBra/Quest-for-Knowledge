@@ -26,10 +26,10 @@ test('los 24 héroes tienen su dibujo', () => {
   }
 });
 
-test('cada nivel tiene su tema con suelo y pared (el 4 espera el arte de las ruinas)', async () => {
+test('los 5 niveles tienen cada uno su tema, y cada tema su suelo y su pared', async () => {
   const { LEVELS } = await import('../constants.ts');
   const { TEMAS } = await import('../mapaLogica.ts');
-  assert.ok(new Set(LEVELS.map(l => l.theme)).size >= 4);
+  assert.equal(new Set(LEVELS.map(l => l.theme)).size, 5);
   for (const l of LEVELS) for (const f of [TEMAS[l.theme].suelo, TEMAS[l.theme].pared]) {
     assert.ok(enPublic(`/arte/mapa/${f}.webp`), `falta ${f}`);
   }

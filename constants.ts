@@ -218,7 +218,7 @@ export const LEVELS: LevelConfig[] = [
     generateMap: generateMap4,
     start: { x: 5, y: 10 },
     title: "NIVEL 4: EL ENIGMA DE LAS ROCAS",
-    theme: 'CLASSROOM', // ponytail: pasa a 'GARDEN' (ruinas) cuando estén ruinas-suelo y ruinas-pared
+    theme: 'GARDEN',
     bossPos: { x: 29, y: 10 },
     portalPos: { x: 30, y: 10 },
     enemyCount: 15,
