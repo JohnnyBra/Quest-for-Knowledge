@@ -58,6 +58,15 @@ function crearNubes(color: string) {
 
 const lienzo = () => document.createElement('canvas');
 
+// Botón de la cruceta: solo onClick (con touchstart además, en tabletas un toque movía dos casillas).
+const Flecha = ({ d, onMove, children, className }: { d: [number, number]; onMove: (dx: number, dy: number) => void; children: React.ReactNode; className: string }) => (
+  <button
+    className={`medallon absolute !w-14 !h-14 ${className}`}
+    aria-label={d[1] < 0 ? 'Arriba' : d[1] > 0 ? 'Abajo' : d[0] < 0 ? 'Izquierda' : 'Derecha'}
+    onClick={() => onMove(d[0], d[1])}
+  >{children}</button>
+);
+
 const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies, onMove, theme }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -391,15 +400,6 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const Flecha = ({ d, children, className }: { d: [number, number]; children: React.ReactNode; className: string }) => (
-    <button
-      className={`medallon absolute !w-14 !h-14 ${className}`}
-      aria-label={d[1] < 0 ? 'Arriba' : d[1] > 0 ? 'Abajo' : d[0] < 0 ? 'Izquierda' : 'Derecha'}
-      onTouchStart={(e) => { e.preventDefault(); onMove(d[0], d[1]); }}
-      onClick={() => onMove(d[0], d[1])}
-    >{children}</button>
-  );
-
   return (
     <div className="w-full h-full flex-1 flex justify-center items-stretch pt-2 pb-0">
       <div ref={containerRef} className="panel !p-0 relative overflow-hidden w-full flex-1 min-h-[60vh] md:min-h-0" style={{ background: '#0b0916' }}>
@@ -407,12 +407,12 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
       </div>
 
       {/* Cruceta táctil: solo en pantallas táctiles */}
-      <div style={{ color: 'var(--dorado-claro)', bottom: 'calc(20px + env(safe-area-inset-bottom))' }} className="dpad fixed right-4 w-[176px] h-[176px] z-[100] select-none">
+      <div style={{ color: 'var(--dorado-claro)', bottom: 'calc(20px + env(safe-area-inset-bottom))' }} className="dpad fixed right-4 w-[176px] h-[176px] z-[45] select-none">
         <div className="absolute inset-[30px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(34,27,56,.85), rgba(11,9,22,.6))', boxShadow: '0 0 0 2px var(--marco), 0 10px 26px rgba(0,0,0,.6)' }} />
-        <Flecha d={[0, -1]} className="top-0 left-1/2 -translate-x-1/2"><ChevronUp size={30} /></Flecha>
-        <Flecha d={[0, 1]} className="bottom-0 left-1/2 -translate-x-1/2"><ChevronDown size={30} /></Flecha>
-        <Flecha d={[-1, 0]} className="left-0 top-1/2 -translate-y-1/2"><ChevronLeft size={30} /></Flecha>
-        <Flecha d={[1, 0]} className="right-0 top-1/2 -translate-y-1/2"><ChevronRight size={30} /></Flecha>
+        <Flecha d={[0, -1]} onMove={onMove} className="top-0 left-1/2 -translate-x-1/2"><ChevronUp size={30} /></Flecha>
+        <Flecha d={[0, 1]} onMove={onMove} className="bottom-0 left-1/2 -translate-x-1/2"><ChevronDown size={30} /></Flecha>
+        <Flecha d={[-1, 0]} onMove={onMove} className="left-0 top-1/2 -translate-y-1/2"><ChevronLeft size={30} /></Flecha>
+        <Flecha d={[1, 0]} onMove={onMove} className="right-0 top-1/2 -translate-y-1/2"><ChevronRight size={30} /></Flecha>
       </div>
     </div>
   );

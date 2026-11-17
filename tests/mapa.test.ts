@@ -29,6 +29,7 @@ test('antorchas: solo en caras frontales y siempre en el mismo sitio', () => {
 
 test('niebla: tapa lo no visitado y se funde al descubrir', () => {
   const r = new RevelarNiebla();
+  r.actualizar([[false, false]], 0);
   const v1 = [[false, true]];
   r.actualizar(v1, 1000);
   assert.equal(alphaNiebla(v1, r, 0, 0, 1000), 1);
@@ -39,8 +40,17 @@ test('niebla: tapa lo no visitado y se funde al descubrir', () => {
 
 test('niebla: al cambiar de nivel (casillas que vuelven a no visitadas) se reinicia', () => {
   const r = new RevelarNiebla();
-  r.actualizar([[true]], 0);
+  r.actualizar([[false]], 0);
+  r.actualizar([[true]], 1);
   r.actualizar([[false]], 5000);
   r.actualizar([[true]], 6000);
   assert.equal(alphaNiebla([[true]], r, 0, 0, 6000), 1);
+});
+
+test('niebla: al volver de una batalla (vista nueva) lo ya explorado no vuelve a fundirse', () => {
+  const r = new RevelarNiebla();
+  r.actualizar([[true, false]], 9000); // primera vez que se dibuja: ya estaba explorado
+  assert.equal(alphaNiebla([[true, false]], r, 0, 0, 9000), 0);
+  r.actualizar([[true, true]], 9100);  // lo que se descubre después sí se funde
+  assert.equal(alphaNiebla([[true, true]], r, 1, 0, 9100), 1);
 });

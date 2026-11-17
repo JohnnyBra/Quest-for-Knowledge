@@ -34,7 +34,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         <div className="modal-cabecera">
           <span className="medallon pointer-events-none"><Icono nombre="medalla" /></span>
           <h2 id="titulo-ranking">Salón de los héroes</h2>
-          <button className="medallon" onClick={onClose} aria-label="Cerrar"><X size={22} /></button>
+          <button className="medallon" onClick={onClose} aria-label="Cerrar" autoFocus><X size={22} /></button>
         </div>
         <div className="modal-cuerpo scroll-fino">
           {loading ? (

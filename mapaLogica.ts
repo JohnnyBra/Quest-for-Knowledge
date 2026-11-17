@@ -23,13 +23,17 @@ export const hayAntorcha = (tiles: TileType[][], x: number, y: number) =>
 /** Recuerda cuándo se descubrió cada casilla para fundir la niebla. */
 export class RevelarNiebla {
   private cuando = new Map<number, number>();
+  private primera = true;
   actualizar(visited: boolean[][], ahora: number) {
+    // La primera vez (p. ej. al volver de una batalla) lo ya explorado aparece sin fundido.
+    const desde = this.primera ? ahora - FUNDIDO_MS : ahora;
+    this.primera = false;
     // Una casilla que deja de estar visitada = nivel nuevo: se olvida todo.
     for (const k of this.cuando.keys()) {
       if (!visited[Math.floor(k / 4096)]?.[k % 4096]) { this.cuando.clear(); break; }
     }
     visited.forEach((fila, y) => fila.forEach((v, x) => {
-      if (v && !this.cuando.has(y * 4096 + x)) this.cuando.set(y * 4096 + x, ahora);
+      if (v && !this.cuando.has(y * 4096 + x)) this.cuando.set(y * 4096 + x, desde);
     }));
   }
   desde(x: number, y: number) { return this.cuando.get(y * 4096 + x); }

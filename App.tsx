@@ -255,7 +255,7 @@ export default function App() {
   };
 
   const handleMove = (dx: number, dy: number) => {
-    if (gameState !== GameState.MAP) return;
+    if (gameState !== GameState.MAP || showInventory || showGallery || showLeaderboard || isEvolving) return;
 
     let newX = player.x + dx;
     let newY = player.y + dy;
@@ -968,7 +968,7 @@ export default function App() {
       {enJuego && (
         <header className="hud fixed top-0 left-0 w-full z-50 px-3 py-2 flex items-center gap-3">
           <div className="retrato" title={nombreHeroe}>
-            <img src={heroeArte} alt="" />
+            <span className="retrato-cara"><img src={heroeArte} alt="" /></span>
             <span className="nivel-chapa" aria-label={`Nivel ${player.level}`}>{player.level}</span>
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -1011,7 +1011,7 @@ export default function App() {
             <div className="modal-cabecera">
               <span className="medallon pointer-events-none"><Icono nombre="mochila" /></span>
               <h2 id="titulo-mochila">Mochila</h2>
-              <button className="medallon" onClick={() => setShowInventory(false)} aria-label="Cerrar"><X size={22} /></button>
+              <button className="medallon" onClick={() => setShowInventory(false)} aria-label="Cerrar" autoFocus><X size={22} /></button>
             </div>
             <div className="grid grid-cols-3 gap-2 p-4 pb-0">
               {[

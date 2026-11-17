@@ -18,7 +18,7 @@ export default function Gallery({ defeatedEnemies = [], onClose }: GalleryProps)
         <div className="modal-cabecera">
           <span className="medallon pointer-events-none"><Icono nombre="libro" /></span>
           <h2 id="titulo-bestiario">Bestiario <small className="text-base" style={{ color: 'var(--tenue)' }}>{vistos.length} / {ALL_ENEMIES.length}</small></h2>
-          <button className="medallon" onClick={onClose} aria-label="Cerrar"><X size={22} /></button>
+          <button className="medallon" onClick={onClose} aria-label="Cerrar" autoFocus><X size={22} /></button>
         </div>
 
         <div className="modal-cuerpo scroll-fino grid grid-cols-2 md:grid-cols-3 gap-3">
