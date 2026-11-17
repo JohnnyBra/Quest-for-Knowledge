@@ -3,96 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quest for Knowledge: Grade 5</title>
+    <title>Quest for Knowledge</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Press Start 2P', cursive;
-        background-color: #0f0f0f;
-        image-rendering: pixelated;
-        overflow-x: hidden;
-      }
-      
-      /* CRT Effect Overlay */
-      .scanlines {
-        position: relative;
-        overflow: hidden;
-      }
-      .scanlines::before {
-        content: " ";
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        z-index: 999;
-        background-size: 100% 2px, 3px 100%;
-        pointer-events: none;
-      }
-      
-      .pixel-border {
-        box-shadow: 
-          -4px 0 0 0 white,
-          4px 0 0 0 white,
-          0 -4px 0 0 white,
-          0 4px 0 0 white;
-        margin: 4px;
-      }
-      
-      .pixel-text-shadow {
-        text-shadow: 2px 2px 0px #000;
-      }
-
-      .animate-bounce-slow {
-        animation: bounce 2s infinite;
-      }
-
-      @keyframes spin-slow {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      .animate-spin-slow {
-        animation: spin-slow 8s linear infinite;
-      }
-
-      /* Show D-pad on touch devices, hide on mouse-driven (desktop) */
-      @media (pointer: fine) {
-        .dpad { display: none; }
-      }
-
-      /* Custom scrollbar for retro feel */
-      ::-webkit-scrollbar {
-        width: 10px;
-        background: #1a1a1a;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #4a4a4a;
-        border: 2px solid #1a1a1a;
-      }
-      
-      /* Battle Animations */
-      @keyframes atk-player {
-        0% { transform: translateX(0); }
-        50% { transform: translateX(-40px) scale(1.1); }
-        100% { transform: translateX(0); }
-      }
-      @keyframes atk-enemy {
-        0% { transform: scaleX(-1) translateX(0); }
-        50% { transform: scaleX(-1) translateX(-40px) scale(1.1); }
-        100% { transform: scaleX(-1) translateX(0); }
-      }
-      @keyframes take-dmg {
-        0%, 100% { filter: brightness(1) sepia(0) saturate(1) hue-rotate(0); margin-left: 0; }
-        20%, 60% { filter: brightness(2) sepia(1) saturate(5) hue-rotate(-50deg); margin-left: -10px; }
-        40%, 80% { filter: brightness(2) sepia(1) saturate(5) hue-rotate(-50deg); margin-left: 10px; }
-      }
-      .anim-atk-player { animation: atk-player 0.3s ease-in-out; }
-      .anim-atk-enemy { animation: atk-enemy 0.3s ease-in-out; }
-      .anim-dmg { animation: take-dmg 0.4s linear; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aclonica&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/quest.css">
+    <meta name="theme-color" content="#0b0916">
+    <link rel="icon" href="/arte/iconos/escudo.webp" type="image/webp">
   <script type="importmap">
 {
   "imports": {
@@ -105,7 +23,7 @@
 }
 </script>
 </head>
-  <body class="scanlines">
+  <body>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

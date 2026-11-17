@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { TileType, Player, GameMap, ActiveEnemy } from '../types';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, LevelTheme, ENEMY_TEMPLATES, getPlayerSpriteUrl } from '../constants';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, LevelTheme, ENEMY_TEMPLATES } from '../constants';
+import { getHeroArt } from '../heroes';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MapViewProps {
@@ -270,9 +271,11 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
       // Draw Hero
       const heroTx = player.x * TILE_SIZE;
       const heroTy = player.y * TILE_SIZE;
-      const heroImg = getImage(getPlayerSpriteUrl(player.level));
+      const heroImg = getImage(getHeroArt(player.hero, player.level));
       if (heroImg.complete && heroImg.naturalWidth !== 0) {
-         ctx.drawImage(heroImg, heroTx - 8, heroTy - 16, TILE_SIZE + 16, TILE_SIZE + 16);
+         ctx.imageSmoothingEnabled = true;
+         ctx.drawImage(heroImg, heroTx - 12, heroTy - 22, TILE_SIZE + 24, TILE_SIZE + 24);
+         ctx.imageSmoothingEnabled = false;
       } else {
          ctx.fillStyle = 'blue';
          ctx.fillRect(heroTx + 8, heroTy + 8, 32, 32);
@@ -302,12 +305,6 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
 
       ctx.restore();
 
-      // Scanline CRT Effect 16-bit
-      ctx.fillStyle = 'rgba(0,0,0,0.15)';
-      for(let i = 0; i < h; i += 4) {
-         ctx.fillRect(0, i, w, 1);
-      }
-
       animationId = requestAnimationFrame(render);
     };
 
@@ -318,7 +315,7 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
 
   return (
     <div className="w-full h-full flex-1 flex justify-center items-stretch pt-2 pb-0">
-      <div ref={containerRef} className="relative overflow-hidden border-4 md:border-8 border-[#333] rounded-lg shadow-2xl bg-[#050505] w-full flex-1 min-h-[60vh] md:min-h-0">
+      <div ref={containerRef} className="panel !p-0 relative overflow-hidden w-full flex-1 min-h-[60vh] md:min-h-0" style={{ background: "#050309" }}>
         <canvas ref={canvasRef} className="block w-full h-full" />
       </div>
 

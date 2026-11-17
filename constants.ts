@@ -1,10 +1,5 @@
 import { TileType, Subject, Item, ItemType } from './types';
 
-export const getPlayerSpriteUrl = (level: number) => {
-  if (level >= 7) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/445.gif"; // Garchomp
-  if (level >= 4) return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/257.gif"; // Blaziken
-  return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/475.gif"; // Gallade
-};
 
 export const TILE_SIZE = 48; // pixels
 export const MAP_WIDTH = 32;

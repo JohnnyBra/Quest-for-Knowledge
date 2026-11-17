@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { RetroBox, RetroButton } from './RetroUI';
-import { User, ArrowRight } from 'lucide-react';
+import { Estandarte, Fondo } from './RetroUI';
+import { SKINS, getHeroArt } from '../heroes';
 
 interface LoginScreenProps {
   onLogin: (name: string) => void;
@@ -13,51 +13,67 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Por favor, introduce tu nombre.');
+      setError('Escribe tu nombre para empezar.');
       return;
     }
     if (name.length > 15) {
-      setError('El nombre es demasiado largo (máx 15 caracteres).');
+      setError('El nombre es demasiado largo (máximo 15 letras).');
       return;
     }
     onLogin(name.trim());
   };
 
   return (
-    <div className="min-h-screen bg-[#111] flex items-center justify-center p-4 font-retro relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
+    <div className="min-h-screen flex flex-col">
+      <Fondo />
+      <header className="cabecera capa">
+        <h1>Quest for Knowledge</h1>
+        <Estandarte />
+        <span className="creditos text-right">Creado por Javi Barrero</span>
+      </header>
 
-      <RetroBox title="IDENTIFICACIÓN DE HÉROE" className="w-full max-w-md bg-[#1a1a1a] border-blue-500 shadow-2xl relative z-10">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-4">
-          <div className="text-center text-gray-300 text-xs md:text-sm mb-2">
-            <p>Bienvenido, estudiante.</p>
-            <p>Para comenzar tu aventura y guardar tu progreso, identifícate.</p>
+      <main className="capa flex-1 w-full max-w-5xl mx-auto px-4 pt-20 md:pt-24 pb-10 grid md:grid-cols-2 gap-2 md:gap-8 items-center">
+        <div className="escenario entrar w-full max-w-[420px] md:max-w-none mx-auto" aria-hidden="true">
+          <div className="flex justify-center items-end">
+            {SKINS.map((s, i) => (
+              <img key={s.id} className="heroe-img flotar relative w-1/3 -mx-[4%]" style={{ animationDelay: `${i * 0.7}s`, zIndex: i === 1 || i === 2 ? 2 : 1 }}
+                src={getHeroArt({ skin: s.id, genero: i % 2 ? 'chica' : 'chico' }, 1)} alt="" />
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="panel entrar w-full max-w-md mx-auto flex flex-col gap-5" noValidate>
+          <div>
+            <h2 className="panel-titulo">Identifícate, héroe</h2>
+            <p className="text-[1.05rem]" style={{ color: 'var(--tenue)' }}>
+              El caos ha borrado el saber del mundo. Escribe tu nombre para empezar la aventura y entrar en el ranking.
+            </p>
           </div>
 
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+          <label className="flex flex-col gap-2 font-semibold">
+            Tu nombre
             <input
               type="text"
+              name="nombre"
+              autoComplete="off"
+              spellCheck={false}
               value={name}
               onChange={(e) => { setName(e.target.value); setError(''); }}
-              placeholder="TU NOMBRE"
-              className="w-full bg-[#000] border-2 border-gray-600 text-white p-3 pl-10 rounded focus:border-blue-500 focus:outline-none uppercase tracking-widest font-mono text-center"
+              placeholder="Por ejemplo: Lucía"
+              className="campo"
+              aria-invalid={!!error}
+              aria-describedby="error-nombre"
               autoFocus
             />
-          </div>
+          </label>
 
-          {error && <p className="text-red-500 text-xs text-center animate-bounce">{error}</p>}
+          <p id="error-nombre" role="alert" className="min-h-[1.4rem] font-bold" style={{ color: '#ff9aa6' }}>{error}</p>
 
-          <RetroButton type="submit" className="w-full bg-blue-700 border-blue-500 shadow-[0_4px_0_rgb(29,78,216)] active:shadow-none active:translate-y-[4px] flex justify-center items-center gap-2">
-            <span>COMENZAR</span> <ArrowRight size={16} />
-          </RetroButton>
+          <button type="submit" className="btn-oro w-full">Comenzar la aventura</button>
 
-          <p className="text-yellow-500 text-[10px] md:text-xs text-center tracking-widest pixel-text-shadow border-t border-gray-700 pt-4 mt-2">
-            Creado por Javi Barrero
-          </p>
+          <p className="creditos text-center pt-3 border-t" style={{ borderColor: 'var(--borde)' }}>Creado por Javi Barrero</p>
         </form>
-      </RetroBox>
+      </main>
     </div>
   );
 }

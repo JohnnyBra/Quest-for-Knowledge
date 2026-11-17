@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { RetroBox, RetroButton } from './RetroUI';
-import { Trophy, User, Calendar } from 'lucide-react';
+import { X } from 'lucide-react';
+import { Icono } from './RetroUI';
 
 interface Score {
   name: string;
@@ -13,68 +13,53 @@ interface LeaderboardProps {
   onClose: () => void;
 }
 
+const COPAS = ['#f6d27a', '#d6dde6', '#e0915a'];
+
 export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fallo, setFallo] = useState(false);
 
   useEffect(() => {
     fetch('/api/leaderboard')
       .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setScores(data);
-        } else {
-          console.error('Invalid leaderboard data format', data);
-          setScores([]);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to fetch leaderboard', err);
-        setLoading(false);
-      });
+      .then(data => setScores(Array.isArray(data) ? data : []))
+      .catch(() => setFallo(true))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4">
-      <RetroBox title="TABLA DE CLASIFICACIÓN" className="w-full max-w-2xl bg-[#1a1a1a] border-yellow-500 shadow-2xl max-h-[80vh] flex flex-col">
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+    <div className="velo z-[70]" onClick={onClose}>
+      <div className="modal max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="titulo-ranking" onClick={e => e.stopPropagation()}>
+        <div className="modal-cabecera">
+          <span className="medallon pointer-events-none"><Icono nombre="medalla" /></span>
+          <h2 id="titulo-ranking">Salón de los héroes</h2>
+          <button className="medallon" onClick={onClose} aria-label="Cerrar"><X size={22} /></button>
+        </div>
+        <div className="modal-cuerpo scroll-fino">
           {loading ? (
-            <div className="text-center text-yellow-500 animate-pulse py-10">CARGANDO...</div>
+            <p className="text-center py-10 animate-pulse" style={{ color: 'var(--dorado)' }}>Cargando…</p>
+          ) : fallo ? (
+            <p className="text-center py-10" style={{ color: '#ff9aa6' }}>No se ha podido cargar el ranking. Inténtalo más tarde.</p>
           ) : scores.length === 0 ? (
-            <div className="text-center text-gray-500 py-10">NO HAY REGISTROS AÚN</div>
+            <p className="text-center py-10" style={{ color: 'var(--tenue)' }}>Todavía no hay héroes en el salón. ¡Sé el primero!</p>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-yellow-500 border-b-2 border-yellow-700 text-[10px] md:text-xs uppercase tracking-wider">
-                  <th className="p-2">#</th>
-                  <th className="p-2">Héroe</th>
-                  <th className="p-2 text-right">Nivel</th>
-                  <th className="p-2 text-right">Puntuación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scores.map((score, index) => (
-                  <tr key={index} className={`border-b border-gray-800 hover:bg-white/5 transition-colors ${index < 3 ? 'text-yellow-200 font-bold' : 'text-gray-300'}`}>
-                    <td className="p-2 flex items-center gap-2">
-                      {index === 0 && <Trophy size={14} className="text-yellow-400" />}
-                      {index === 1 && <Trophy size={14} className="text-gray-400" />}
-                      {index === 2 && <Trophy size={14} className="text-orange-400" />}
-                      {index + 1}
-                    </td>
-                    <td className="p-2 truncate max-w-[120px] md:max-w-[200px]">{score.name}</td>
-                    <td className="p-2 text-right">{score.level}</td>
-                    <td className="p-2 text-right font-mono">{score.score.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ol className="m-0 p-0 list-none grid gap-2">
+              {scores.map((s, i) => (
+                <li key={i} className="ficha flex items-center gap-3" style={i < 3 ? { borderColor: COPAS[i] } : undefined}>
+                  <span className="titulo w-9 h-9 shrink-0 grid place-items-center rounded-full"
+                    style={i < 3 ? { background: COPAS[i], color: '#2a1a00' } : { background: 'var(--roca)', color: 'var(--tenue)' }}>
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate font-bold">{s.name}</span>
+                  <span className="text-sm shrink-0" style={{ color: 'var(--tenue)' }}>Nivel {s.level}</span>
+                  <span className="titulo shrink-0 tabular-nums" style={{ color: 'var(--dorado-claro)' }}>{s.score.toLocaleString('es-ES')}</span>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
-        <div className="p-4 border-t-2 border-gray-800 flex justify-center">
-          <RetroButton onClick={onClose} variant="primary">CERRAR</RetroButton>
-        </div>
-      </RetroBox>
+      </div>
     </div>
   );
 }

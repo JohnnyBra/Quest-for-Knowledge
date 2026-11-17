@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, BookOpen, Skull } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ENEMY_TEMPLATES, BOSS_TEMPLATE } from '../constants';
+import { Icono } from './RetroUI';
 
 interface GalleryProps {
   defeatedEnemies: string[];
@@ -10,38 +11,30 @@ interface GalleryProps {
 const ALL_ENEMIES = [...ENEMY_TEMPLATES, BOSS_TEMPLATE];
 
 export default function Gallery({ defeatedEnemies = [], onClose }: GalleryProps) {
+  const vistos = defeatedEnemies || [];
   return (
-    <div className="fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4">
-      <div className="bg-[#1a1a1a] border-4 border-white w-full max-w-3xl rounded-lg p-0 relative shadow-2xl flex flex-col max-h-[85vh]">
-        <div className="bg-purple-900 p-4 border-b-4 border-purple-700 flex justify-between items-center">
-          <h2 className="text-yellow-400 text-base md:text-xl font-bold flex items-center gap-2">
-            <BookOpen /> BESTIARIO ({(defeatedEnemies || []).length}/{ALL_ENEMIES.length})
-          </h2>
-          <button onClick={onClose} className="text-white hover:text-red-500">
-            <X size={28} />
-          </button>
+    <div className="velo z-[70]" onClick={onClose}>
+      <div className="modal max-w-3xl" role="dialog" aria-modal="true" aria-labelledby="titulo-bestiario" onClick={e => e.stopPropagation()}>
+        <div className="modal-cabecera">
+          <span className="medallon pointer-events-none"><Icono nombre="libro" /></span>
+          <h2 id="titulo-bestiario">Bestiario <small className="text-base" style={{ color: 'var(--tenue)' }}>{vistos.length} / {ALL_ENEMIES.length}</small></h2>
+          <button className="medallon" onClick={onClose} aria-label="Cerrar"><X size={22} /></button>
         </div>
 
-        <div className="p-4 flex-1 overflow-y-auto custom-scrollbar bg-[#111] grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="modal-cuerpo scroll-fino grid grid-cols-2 md:grid-cols-3 gap-3">
           {ALL_ENEMIES.map((enemy, idx) => {
-            const isDefeated = (defeatedEnemies || []).includes(enemy.name);
+            const visto = vistos.includes(enemy.name);
             return (
-              <div key={idx} className={`border-2 rounded-lg p-3 flex flex-col items-center text-center transition-all ${isDefeated ? 'border-purple-500 bg-[#2a2a2a]' : 'border-gray-700 bg-[#161616] opacity-60'}`}>
-                <div className="h-24 w-24 mb-2 flex items-center justify-center bg-black/40 rounded border border-gray-700 overflow-hidden">
-                  {isDefeated ? (
-                    <img src={enemy.spriteUrl} alt={enemy.name} className="w-20 h-20 object-contain drop-shadow-lg" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
+              <div key={idx} className="ficha flex flex-col items-center text-center" style={visto ? { borderColor: 'var(--marco)' } : { opacity: 0.6 }}>
+                <div className="w-24 h-24 mb-2 grid place-items-center rounded-full" style={{ background: 'radial-gradient(circle at 50% 35%, #3a2f5c, var(--roca))', boxShadow: 'inset 0 0 0 2px var(--borde)' }}>
+                  {visto ? (
+                    <img src={enemy.spriteUrl} alt="" className="w-20 h-20 object-contain" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
                   ) : (
-                    <Skull className="text-gray-600 animate-pulse" size={40} />
+                    <span className="titulo text-4xl" style={{ color: 'var(--borde)' }}>?</span>
                   )}
                 </div>
-                <h3 className={`text-xs md:text-sm font-bold ${isDefeated ? 'text-white' : 'text-gray-500'}`}>
-                  {isDefeated ? enemy.name : '???'}
-                </h3>
-                {isDefeated && (
-                  <p className="text-[9px] md:text-[10px] text-gray-400 mt-2 italic leading-tight">
-                    {enemy.description}
-                  </p>
-                )}
+                <h3 className="m-0 text-[0.95rem]" style={{ color: visto ? 'var(--dorado-claro)' : 'var(--tenue)' }}>{visto ? enemy.name : '???'}</h3>
+                {visto && <p className="text-sm mt-1 mb-0" style={{ color: 'var(--tenue)' }}>{enemy.description}</p>}
               </div>
             );
           })}

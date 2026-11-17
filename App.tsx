@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy, Subject } from './types';
-import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, getPlayerSpriteUrl, MAP1_BOULDER_START } from './constants';
+import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, MAP1_BOULDER_START } from './constants';
 import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { NARRATIVE } from './data/narrative';
-import { Sparkles, Skull, ScrollText, Heart, Shield, Sword, Key, Backpack, X, Zap, Star, LogOut, BookOpen } from 'lucide-react';
+import { Heart, Sword, Key, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
+import HeroSelect from './components/HeroSelect';
+import { Fondo, Icono, Estandarte } from './components/RetroUI';
+import { HEROE_POR_DEFECTO, HeroChoice, cargarHeroe, guardarHeroe, getHeroArt, SKINS, formaDe } from './heroes';
 
 const INITIAL_PLAYER: Player = {
   x: LEVELS[0].start.x,
@@ -29,7 +32,8 @@ const INITIAL_PLAYER: Player = {
   incorrectAnswers: 0,
   superEffectiveAnswers: 0,
   startTime: Date.now(),
-  defeatedEnemies: []
+  defeatedEnemies: [],
+  hero: HEROE_POR_DEFECTO
 };
 
 export default function App() {
@@ -177,8 +181,16 @@ export default function App() {
   };
 
   const handleLogin = (name: string) => {
-    setPlayer(prev => ({ ...prev, name }));
+    const guardado = cargarHeroe(name);
+    setPlayer(prev => ({ ...prev, name, hero: guardado ?? prev.hero }));
     setIsLoggedIn(true);
+    setGameState(guardado ? GameState.START_SCREEN : GameState.HERO_SELECT);
+  };
+
+  const elegirHeroe = (hero: HeroChoice) => {
+    guardarHeroe(player.name, hero);
+    setPlayer(prev => ({ ...prev, hero }));
+    setGameState(GameState.START_SCREEN);
   };
 
   const saveScore = async (finalPlayer: Player) => {
@@ -882,14 +894,17 @@ export default function App() {
     saveScore(player);
   };
 
+  // Vuelve a empezar conservando quién juega y con qué héroe.
+  const nuevoJugador = (prev: Player): Player => ({ ...INITIAL_PLAYER, name: prev.name, hero: prev.hero });
+
   const resetGame = () => {
-    setPlayer(INITIAL_PLAYER);
+    setPlayer(nuevoJugador);
     setGameState(GameState.START_SCREEN);
   };
 
   const handleEndGame = () => {
     saveScore(player);
-    setPlayer(INITIAL_PLAYER);
+    setPlayer(nuevoJugador);
     setGameState(GameState.START_SCREEN);
     showNotification("Progreso guardado. ¡Hasta pronto!");
   };
@@ -901,110 +916,77 @@ export default function App() {
   const prevLevelXp = (player.level - 1) * 100;
   const xpPercentage = Math.min(100, Math.max(0, ((player.xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100));
 
+  const enJuego = gameState === GameState.MAP || gameState === GameState.BATTLE;
+  const heroeArte = getHeroArt(player.hero, player.level);
+  const skin = SKINS.find(s => s.id === player.hero.skin)!;
+  const nombreHeroe = `${skin.formas[formaDe(player.level) - 1]} · ${skin.nombre[player.hero.genero]}`;
+  const vidaBaja = player.hp / player.maxHp <= 0.3;
+
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#111] text-white flex flex-col items-center justify-start font-retro select-none overflow-x-hidden relative">
+    <div className="min-h-screen flex flex-col items-center relative select-none overflow-x-hidden">
+      <Fondo />
 
-      {/* EVOLUTION ANIMATION OVERLAY */}
+      {/* EVOLUCIÓN */}
       {isEvolving && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
-          <h1 className="text-4xl md:text-6xl text-white font-bold mb-8 animate-pulse text-center">
-            ¡LA LUZ DEL SABER TE ENVUELVE!
-          </h1>
-          <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center animate-bounce-slow">
-            <div className="absolute inset-0 bg-yellow-400 rounded-full blur-3xl animate-ping opacity-60"></div>
-            <div className="absolute inset-0 bg-white rounded-full blur-xl animate-pulse opacity-80"></div>
-            <img 
-               src={getPlayerSpriteUrl(player.level)}
-               alt="Evolved Hero" 
-               className="relative z-10 w-full h-full object-contain mix-blend-screen scale-150 drop-shadow-[0_0_30px_rgba(250,204,21,1)]"
-               style={{ imageRendering: 'pixelated' }}
-            />
-          </div>
-          <p className="mt-12 text-2xl text-yellow-300 font-bold animate-bounce tracking-widest uppercase text-center px-4">
-            {player.level >= 7 ? "¡ALCANZAS LA FORMA DEFINITIVA!" : "¡TU HÉROE SE HACE MÁS FUERTE!"}
+        <div className="velo z-[100] flex-col overflow-hidden" role="status" aria-live="polite">
+          <div className="evolucion-luz" aria-hidden="true" />
+          <h2 className="relative text-center text-[clamp(1.6rem,5vw,3.2rem)] m-0" style={{ color: 'var(--dorado-claro)', textShadow: '0 0 30px rgba(232,184,74,.7)' }}>
+            ¡La luz del saber te envuelve!
+          </h2>
+          <img src={heroeArte} alt="" className="relative silueta w-[min(70vw,320px)] my-6" />
+          <p className="relative titulo text-xl text-center" style={{ color: 'var(--runa-clara)' }}>
+            {player.level >= 7 ? '¡Alcanzas tu forma definitiva!' : '¡Tu héroe se hace más fuerte!'}
           </p>
         </div>
       )}
 
-      {/* SHOCKWAVE EFFECT IN MAP */}
+      {/* ONDA EXPANSIVA */}
       {showShockwave && gameState === GameState.MAP && (
-         <div className="fixed inset-0 pointer-events-none z-[40] flex items-center justify-center overflow-hidden">
-            <div className="w-10 h-10 border-[20px] border-cyan-400/80 rounded-full animate-ping opacity-0" style={{ animationDuration: '2s' }}></div>
-            <div className="absolute w-10 h-10 border-[10px] border-indigo-500/50 rounded-full animate-ping opacity-0 delay-150" style={{ animationDuration: '2.2s' }}></div>
-         </div>
+        <div className="fixed inset-0 pointer-events-none z-[40] flex items-center justify-center overflow-hidden" aria-hidden="true">
+          <div className="w-10 h-10 border-[20px] rounded-full animate-ping" style={{ borderColor: 'rgba(246,210,122,.8)', animationDuration: '2s' }} />
+          <div className="absolute w-10 h-10 border-[10px] rounded-full animate-ping" style={{ borderColor: 'rgba(185,155,255,.6)', animationDuration: '2.2s' }} />
+        </div>
       )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
-      {(gameState === GameState.MAP || gameState === GameState.BATTLE) && (
-        <div className="fixed top-0 left-0 w-full z-50 pointer-events-none flex flex-col">
 
-          <div className="bg-[#1a1a1a] border-b-4 border-[#333] px-3 py-2 flex justify-between items-center text-[10px] md:text-xs tracking-wider font-bold shadow-lg pointer-events-auto">
-            <span className="text-yellow-500 uppercase truncate max-w-[40%]">{currentLevelTitle}</span>
-            <span className="text-gray-600 text-[8px] md:text-[10px] tracking-wide hidden sm:inline">Creado por Javi Barrero</span>
-            <div className="flex gap-3 text-white items-center">
-              <button onClick={() => setShowGallery(true)} className="flex items-center gap-1 bg-purple-900 border-2 border-purple-500 px-3 py-1 rounded hover:bg-purple-800 transition-colors shadow-[0_2px_0_rgb(88,28,135)] active:shadow-none active:translate-y-[2px]">
-                <BookOpen size={14} />
-                <span className="hidden md:inline">BESTIARIO</span>
-              </button>
-              <button onClick={() => setShowInventory(true)} className="flex items-center gap-1 bg-blue-900 border-2 border-blue-500 px-3 py-1 rounded hover:bg-blue-800 transition-colors shadow-[0_2px_0_rgb(30,58,138)] active:shadow-none active:translate-y-[2px]">
-                <Backpack size={14} />
-                <span className="hidden md:inline">MOCHILA</span>
-              </button>
-              <button onClick={handleEndGame} className="flex items-center gap-1 bg-red-900 border-2 border-red-500 px-3 py-1 rounded hover:bg-red-800 transition-colors shadow-[0_2px_0_rgb(153,27,27)] active:shadow-none active:translate-y-[2px]">
-                <LogOut size={14} />
-                <span className="hidden md:inline">SALIR</span>
-              </button>
-              <span className="text-yellow-200">LVL {player.level}</span>
-              <span className="text-green-300">PTS {player.score}</span>
+      {/* HUD */}
+      {enJuego && (
+        <header className="hud fixed top-0 left-0 w-full z-50 px-3 py-2 flex items-center gap-3">
+          <div className="retrato" title={nombreHeroe}>
+            <img src={heroeArte} alt="" />
+            <span className="nivel-chapa" aria-label={`Nivel ${player.level}`}>{player.level}</span>
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3 min-w-0 leading-tight">
+              <span className="titulo truncate text-[0.95rem] md:text-[1.05rem]" style={{ color: 'var(--dorado)' }}>{currentLevelTitle}</span>
+              <span className="creditos shrink-0 !text-[0.68rem] sm:!text-[0.78rem]">Creado por Javi Barrero</span>
+            </div>
+            <div className={`barra vida ${vidaBaja ? 'baja' : ''}`} role="meter" aria-label="Vida" aria-valuemin={0} aria-valuemax={player.maxHp} aria-valuenow={player.hp}>
+              <i style={{ width: `${Math.max(0, (player.hp / player.maxHp) * 100)}%` }} />
+              <span>{player.hp} / {player.maxHp}</span>
+            </div>
+            <div className="barra xp" role="meter" aria-label="Experiencia" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(xpPercentage)} title={`XP ${player.xp} / ${nextLevelXp}`}>
+              <i style={{ width: `${xpPercentage}%` }} />
             </div>
           </div>
+          <span className="chapa hidden sm:inline-flex" aria-label="Puntos"><Star size={14} fill="currentColor" /> {player.score}</span>
+          <nav className="flex gap-2" aria-label="Menú del juego">
+            <button className="medallon" onClick={() => setShowGallery(true)} aria-label="Bestiario" title="Bestiario"><Icono nombre="libro" /></button>
+            <button className="medallon" onClick={() => setShowInventory(true)} aria-label="Mochila" title="Mochila"><Icono nombre="mochila" /></button>
+            <button className="medallon" onClick={handleEndGame} aria-label="Guardar y salir" title="Guardar y salir"><Icono nombre="puerta" /></button>
+          </nav>
+        </header>
+      )}
 
-          <div className="bg-[#222] px-3 py-2 border-b-4 border-[#111] flex flex-col gap-2 pointer-events-auto w-full shadow-xl">
-            {/* HP Row */}
-            <div className="flex items-center gap-3">
-              <Heart className="text-red-500 fill-current shrink-0" size={20} />
-              <div className="relative flex-1 h-6 bg-[#333] border-2 border-[#555] rounded-sm box-content">
-                <div
-                  className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300 relative overflow-hidden"
-                  style={{ width: `${Math.max(0, (player.hp / player.maxHp) * 100)}%` }}
-                >
-                  <div className="absolute top-0 left-0 w-full h-[50%] bg-white/20"></div>
-                </div>
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-widest z-10">
-                  {player.hp}/{player.maxHp}
-                </span>
-              </div>
-            </div>
-
-            {/* XP Row */}
-            <div className="flex items-center gap-3">
-              <Star className="text-yellow-400 fill-current shrink-0" size={16} />
-              <div className="relative flex-1 h-3 bg-[#333] border border-[#555] rounded-sm box-content">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500 relative overflow-hidden"
-                  style={{ width: `${xpPercentage}%` }}
-                >
-                  <div className="absolute top-0 left-0 w-full h-[50%] bg-white/20"></div>
-                </div>
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white/90 font-bold tracking-widest z-10 drop-shadow-md">
-                  XP {player.xp} / {nextLevelXp}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Notification Toast - Fixed Centering */}
-          {notification && (
-            <div className="fixed top-32 left-0 w-full flex justify-center px-4 pointer-events-none z-[100]">
-              <div className="bg-yellow-600 text-white border-2 border-white px-4 py-3 rounded shadow-xl animate-bounce text-[10px] md:text-base font-bold text-center w-full max-w-sm">
-                {notification}
-              </div>
-            </div>
-          )}
+      {/* Aviso flotante */}
+      {notification && (
+        <div className="fixed top-28 left-0 w-full flex justify-center px-4 pointer-events-none z-[100]" role="status" aria-live="polite">
+          <div className="aviso w-full max-w-sm">{notification}</div>
         </div>
       )}
 
@@ -1012,132 +994,110 @@ export default function App() {
         <Gallery defeatedEnemies={player.defeatedEnemies} onClose={() => setShowGallery(false)} />
       )}
 
-      {/* Inventory Modal */}
+      {/* MOCHILA */}
       {showInventory && (
-        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
-          <div className="bg-[#1a1a1a] border-4 border-white w-full max-w-lg rounded-lg p-0 relative shadow-2xl flex flex-col max-h-[80vh]">
-            <div className="bg-blue-900 p-4 border-b-4 border-blue-700 flex justify-between items-center">
-              <h2 className="text-yellow-400 text-xl font-bold flex items-center gap-2">
-                <Backpack /> INVENTARIO
-              </h2>
-              <button onClick={() => setShowInventory(false)} className="text-white hover:text-red-500">
-                <X size={28} />
-              </button>
+        <div className="velo z-[60]" onClick={() => setShowInventory(false)}>
+          <div className="modal max-w-lg" role="dialog" aria-modal="true" aria-labelledby="titulo-mochila" onClick={e => e.stopPropagation()}>
+            <div className="modal-cabecera">
+              <span className="medallon pointer-events-none"><Icono nombre="mochila" /></span>
+              <h2 id="titulo-mochila">Mochila</h2>
+              <button className="medallon" onClick={() => setShowInventory(false)} aria-label="Cerrar"><X size={22} /></button>
             </div>
-
-            <div className="bg-[#222] p-4 flex justify-around border-b-2 border-gray-700">
-              <div className="flex flex-col items-center">
-                <span className="text-gray-400 text-[8px] md:text-xs uppercase">Ataque</span>
-                <div className="flex items-center gap-2 text-blue-400 font-bold text-base md:text-xl">
-                  <Sword size={20} /> {player.stats.attack}
+            <div className="grid grid-cols-3 gap-2 p-4 pb-0">
+              {[
+                { t: 'Ataque', v: player.stats.attack, i: <Sword size={18} />, c: 'var(--runa-clara)' },
+                { t: 'Vida máx.', v: player.maxHp, i: <Heart size={18} />, c: '#ff8a8a' },
+                { t: 'Crítico', v: `${player.stats.critChance}%`, i: <Zap size={18} />, c: 'var(--dorado-claro)' },
+              ].map(e => (
+                <div key={e.t} className="ficha text-center">
+                  <div className="text-xs uppercase tracking-wider" style={{ color: 'var(--tenue)' }}>{e.t}</div>
+                  <div className="titulo text-xl flex items-center justify-center gap-2" style={{ color: e.c }}>{e.i} {e.v}</div>
                 </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-gray-400 text-[8px] md:text-xs uppercase">Salud Máx</span>
-                <div className="flex items-center gap-2 text-green-400 font-bold text-base md:text-xl">
-                  <Heart size={20} /> {player.maxHp}
-                </div>
-                <div className="flex flex-col items-center">
-                <span className="text-gray-400 text-[8px] md:text-xs uppercase">Crítico</span>
-                <div className="flex items-center gap-2 text-yellow-400 font-bold text-base md:text-xl">
-                  <Zap size={20} /> {player.stats.critChance}%
-                </div>
-              </div>
+              ))}
             </div>
-            </div>
-
-            <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-[#111]">
-              <h3 className="text-gray-500 text-[8px] mb-2 uppercase tracking-widest border-b border-gray-800 pb-1">Objetos Recogidos</h3>
+            <div className="modal-cuerpo scroll-fino">
               {player.inventory.length === 0 ? (
-                <div className="text-center py-10 opacity-50 flex flex-col items-center">
-                  <Backpack size={48} className="mb-2" />
-                  <p className="text-xs">Tu mochila está vacía.</p>
+                <div className="text-center py-8" style={{ color: 'var(--tenue)' }}>
+                  <img src="/arte/iconos/mochila.webp" alt="" className="w-20 mx-auto opacity-60 mb-2" />
+                  Tu mochila está vacía. Busca cofres por el mapa.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ul className="grid gap-2 m-0 p-0 list-none">
                   {player.inventory.map((item, idx) => (
-                    <div key={idx} className="bg-[#2a2a2a] p-3 flex items-center gap-3 border-2 border-gray-700 rounded relative">
-                      <div className="p-2 rounded bg-black/20 text-yellow-400 shrink-0">
-                        {item.type === ItemType.KEY ? <Key size={16} /> : item.type === ItemType.WEAPON ? <Sword size={16} /> : <Heart size={16} />}
-                      </div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <p className="text-[10px] md:text-xs font-bold text-white truncate">{item.name}</p>
-                        <p className="text-[8px] text-gray-400 mt-1 truncate">{item.description}</p>
+                    <li key={idx} className="ficha flex items-center gap-3">
+                      <span className="medallon pointer-events-none" style={{ color: 'var(--dorado-claro)' }}>
+                        {item.type === ItemType.KEY ? <Key size={20} /> : item.type === ItemType.WEAPON ? <Sword size={20} /> : <Heart size={20} />}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="m-0 font-bold">{item.name}</p>
+                        <p className="m-0 text-sm" style={{ color: 'var(--tenue)' }}>{item.description}</p>
                       </div>
                       {item.type === ItemType.POTION && (
-                        <button
-                          onClick={() => handleUseItem(item, idx)}
-                          className="ml-2 bg-green-700 hover:bg-green-600 text-white text-[9px] px-2 py-1 rounded border border-green-500 shadow-sm shrink-0 flex items-center gap-1 active:scale-95 transition-transform"
-                        >
-                          <Zap size={10} /> USAR
-                        </button>
+                        <button onClick={() => handleUseItem(item, idx)} className="btn-oro !min-h-[44px] !px-4 !text-base shrink-0">Usar</button>
                       )}
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Container */}
-      <div className="w-full max-w-6xl px-1 md:px-4 mt-24 md:mt-28 mb-4 flex-1 flex flex-col items-center relative z-10">
+      {/* Cabecera de las pantallas fuera del mapa */}
+      {!enJuego && (
+        <header className="cabecera capa w-full">
+          <h1>Quest for Knowledge</h1>
+          <Estandarte />
+          <span className="creditos text-right">Creado por Javi Barrero</span>
+        </header>
+      )}
+
+      <main className={`capa w-full flex-1 flex flex-col items-center ${enJuego ? 'max-w-6xl px-1 md:px-4 mt-[92px] mb-2' : 'max-w-5xl px-4 pt-24 pb-10 justify-center'}`}>
+
+        {gameState === GameState.HERO_SELECT && (
+          <HeroSelect nombre={player.name} inicial={player.hero} onElegir={elegirHeroe} />
+        )}
 
         {gameState === GameState.START_SCREEN && (
-          <div className="text-center space-y-8 animate-fade-in pt-12 flex flex-col items-center">
-            <h1 className="text-2xl md:text-5xl text-yellow-400 pixel-text-shadow mb-8 leading-tight tracking-tighter text-center">
-              QUEST FOR KNOWLEDGE
-              <br />
-              <span className="text-xs md:text-lg text-blue-300">Grade 5 Heroes</span>
-            </h1>
-            <div className="flex justify-center mb-8">
-              <div className="relative group cursor-pointer" onClick={startGame}>
-                <div className="relative w-32 h-32 md:w-48 md:h-48 bg-black border-4 border-white flex items-center justify-center overflow-hidden rounded-lg">
-                  <ScrollText size={60} className="text-yellow-200 animate-bounce" />
-                </div>
+          <div className="w-full grid md:grid-cols-2 gap-6 items-center entrar">
+            <div className="escenario w-full max-w-[360px] mx-auto">
+              <img className="heroe-img flotar" src={heroeArte} alt={nombreHeroe} />
+            </div>
+            <div className="panel flex flex-col gap-4 text-center md:text-left">
+              <div>
+                <p className="m-0 text-sm uppercase tracking-[0.2em]" style={{ color: 'var(--runa-clara)' }}>Repaso de 5º</p>
+                <h2 className="m-0 text-[clamp(2rem,5vw,3.2rem)] leading-none" style={{ color: 'var(--dorado)', textShadow: '0 0 26px rgba(232,184,74,.4)' }}>Quest for Knowledge</h2>
+                <p className="mt-3 mb-0 text-lg">¡Hola, <strong style={{ color: 'var(--dorado-claro)' }}>{player.name}</strong>! Hoy luchas como <strong style={{ color: 'var(--dorado-claro)' }}>{skin.nombre[player.hero.genero]}</strong>.</p>
+              </div>
+              <button className="btn-oro text-xl w-full" onClick={startGame}>Jugar</button>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="btn-cuero" onClick={() => setShowLeaderboard(true)}>Ver ranking</button>
+                <button className="btn-cuero" onClick={() => setGameState(GameState.HERO_SELECT)}>Cambiar héroe</button>
               </div>
             </div>
-            <div className="flex flex-col gap-4 w-full max-w-xs">
-              <RetroButton onClick={startGame} className="text-lg md:text-2xl px-8 py-4 animate-pulse bg-indigo-600 border-indigo-400 shadow-[0_4px_0_rgb(49,46,129)] active:shadow-none active:translate-y-[4px]">
-                JUGAR
-              </RetroButton>
-              <RetroButton onClick={() => setShowLeaderboard(true)} className="text-sm md:text-base px-6 py-3 bg-yellow-700 border-yellow-500 shadow-[0_4px_0_rgb(161,98,7)] active:shadow-none active:translate-y-[4px]">
-                VER RANKING
-              </RetroButton>
-            </div>
-            <p className="text-yellow-400 text-base md:text-xl font-bold tracking-widest mt-4 pixel-text-shadow text-center">
-              Creado por Javi Barrero
-            </p>
           </div>
         )}
 
         {gameState === GameState.NARRATIVE && (
-          <div className="w-full flex justify-center">
-            <RetroBox title={narrativeStep === 'PROLOGUE' ? "PRÓLOGO" : "MISIÓN"} className="w-full max-w-2xl text-center py-6 md:py-10 bg-gray-900 border-yellow-600 mt-8 flex flex-col max-h-[85vh]">
-              <div className="text-[10px] md:text-base leading-5 md:leading-8 mb-8 whitespace-pre-wrap text-left font-sans text-gray-200 px-2 overflow-y-auto custom-scrollbar flex-1">
-                {narrativeStep === 'PROLOGUE' ? NARRATIVE.PROLOGUE : NARRATIVE.MISSION}
-              </div>
-              <div className="shrink-0">
-                <RetroButton onClick={advanceNarrative} className="animate-pulse bg-yellow-700 border-yellow-500 shadow-[0_4px_0_rgb(161,98,7)] active:translate-y-[4px] active:shadow-none">
-                  {narrativeStep === 'PROLOGUE' ? "SIGUIENTE ▶" : "ACEPTAR MISIÓN"}
-                </RetroButton>
-              </div>
-            </RetroBox>
-          </div>
+          <RetroBox title={narrativeStep === 'PROLOGUE' ? 'Prólogo' : 'Tu misión'} className="w-full max-w-3xl flex flex-col max-h-[calc(100dvh-140px)] entrar">
+            <div className="pergamino overflow-y-auto scroll-fino flex-1 pr-2 mb-5">
+              {narrativeStep === 'PROLOGUE' ? NARRATIVE.PROLOGUE : NARRATIVE.MISSION}
+            </div>
+            <button className="btn-oro self-center min-w-[240px]" onClick={advanceNarrative}>
+              {narrativeStep === 'PROLOGUE' ? 'Siguiente' : 'Aceptar la misión'}
+            </button>
+          </RetroBox>
         )}
 
         {gameState === GameState.MAP && (
           <div className="flex flex-col items-center justify-start w-full flex-1 mt-2">
             <CanvasMapView mapData={mapData} player={player} activeEnemies={activeEnemies} onMove={handleMove} theme={LEVELS[currentLevelIndex].theme} />
-            {/* Objective Box */}
-            <div className="mt-2 mx-2 bg-[#2a2a2a] border-2 border-[#4a4a4a] py-1 px-3 rounded shadow-lg w-full max-w-md z-20 opacity-80 backdrop-blur-sm hidden md:block">
-              <p className="text-[10px] md:text-sm text-gray-200 text-center leading-tight">
-                {mapData.tiles.some(r => r.includes(TileType.BOSS))
-                  ? "¡Derrota al Director del Caos para liberar el portal!"
-                  : "¡El camino está libre! Entra en el portal."}
-              </p>
-            </div>
+            <p className="chapa mt-2 hidden md:inline-flex !font-[Rubik] !text-[0.95rem]">
+              {mapData.tiles.some(r => r.includes(TileType.BOSS))
+                ? '¡Derrota al Director del Caos para liberar el portal!'
+                : '¡El camino está libre! Entra en el portal.'}
+            </p>
           </div>
         )}
 
@@ -1154,29 +1114,34 @@ export default function App() {
         )}
 
         {gameState === GameState.GAME_OVER && (
-          <div className="text-center pt-20">
-            <Skull size={100} className="mx-auto text-red-600 mb-6" />
-            <h2 className="text-2xl md:text-4xl text-red-500 mb-8 pixel-text-shadow">GAME OVER</h2>
-            <RetroButton onClick={resetGame} variant="danger">REINTENTAR</RetroButton>
+          <div className="w-full max-w-xl text-center entrar">
+            <div className="escenario max-w-[260px] mx-auto">
+              <img className="heroe-img" style={{ filter: 'grayscale(.8) brightness(.6) drop-shadow(0 12px 18px rgba(0,0,0,.6))' }} src={heroeArte} alt="" />
+            </div>
+            <RetroBox title="Has caído en combate">
+              <p className="text-lg mt-0">El caos ha ganado esta vez, pero todo lo que has aprendido sigue contigo. ¡Inténtalo de nuevo!</p>
+              <RetroButton onClick={resetGame} className="w-full">Volver a intentarlo</RetroButton>
+            </RetroBox>
           </div>
         )}
 
         {gameState === GameState.VICTORY && (
-          <div className="text-center max-w-3xl mx-auto pt-20 flex flex-col items-center">
-            <Sparkles size={80} className="mx-auto text-yellow-400 mb-6 animate-spin-slow" />
-            <h2 className="text-2xl md:text-4xl text-green-400 mb-6 pixel-text-shadow">¡GRAN VICTORIA!</h2>
-            <RetroBox className="mb-8 text-left bg-green-950 border-green-500">
-              <p className="text-xs md:text-base leading-relaxed whitespace-pre-wrap text-green-100 p-2">
+          <div className="w-full max-w-xl text-center entrar">
+            <div className="escenario max-w-[300px] mx-auto">
+              <img className="heroe-img flotar" src={heroeArte} alt="" />
+            </div>
+            <RetroBox title="¡Gran victoria!">
+              <p className="text-lg mt-0 text-left">
                 Has completado todos los niveles. El caos ha sido derrotado y el conocimiento ha vuelto al mundo.
                 <br /><br />
-                ¡Eres un verdadero Guardián de la Memoria!
+                <strong style={{ color: 'var(--dorado-claro)' }}>¡Eres un verdadero Guardián de la Memoria!</strong>
               </p>
+              <RetroButton onClick={resetGame} className="w-full">Jugar de nuevo</RetroButton>
             </RetroBox>
-            <RetroButton onClick={resetGame} variant="success">JUGAR DE NUEVO</RetroButton>
           </div>
         )}
 
-      </div>
+      </main>
     </div>
   );
 }
