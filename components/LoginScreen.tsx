@@ -36,7 +36,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className="escenario entrar w-full max-w-[420px] md:max-w-none mx-auto" aria-hidden="true">
           <div className="flex justify-center items-end">
             {SKINS.map((s, i) => (
-              <img key={s.id} className="heroe-img flotar relative w-1/3 -mx-[4%]" style={{ animationDelay: `${i * 0.7}s`, zIndex: i === 1 || i === 2 ? 2 : 1 }}
+              <img key={s.id} className="heroe-img flotar relative w-[29%] -mx-[2%]" style={{ animationDelay: `${i * 0.7}s`, zIndex: i === 1 || i === 2 ? 2 : 1 }}
                 src={getHeroArt({ skin: s.id, genero: i % 2 ? 'chica' : 'chico' }, 1)} alt="" />
             ))}
           </div>
