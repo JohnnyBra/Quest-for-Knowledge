@@ -65,6 +65,16 @@ export default function App() {
   const [isEvolving, setIsEvolving] = useState(false);
   const [showShockwave, setShowShockwave] = useState(false);
 
+  // Escape cierra cualquier ventana abierta
+  useEffect(() => {
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setShowInventory(false); setShowGallery(false); setShowLeaderboard(false);
+    };
+    window.addEventListener('keydown', alPulsar);
+    return () => window.removeEventListener('keydown', alPulsar);
+  }, []);
+
   // Sync refs
   useEffect(() => {
     playerRef.current = player;

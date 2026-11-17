@@ -407,7 +407,7 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
       </div>
 
       {/* Cruceta táctil: solo en pantallas táctiles */}
-      <div className="dpad fixed bottom-5 right-4 w-[176px] h-[176px] z-[100] select-none" style={{ color: 'var(--dorado-claro)' }}>
+      <div style={{ color: 'var(--dorado-claro)', bottom: 'calc(20px + env(safe-area-inset-bottom))' }} className="dpad fixed right-4 w-[176px] h-[176px] z-[100] select-none">
         <div className="absolute inset-[30px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(34,27,56,.85), rgba(11,9,22,.6))', boxShadow: '0 0 0 2px var(--marco), 0 10px 26px rgba(0,0,0,.6)' }} />
         <Flecha d={[0, -1]} className="top-0 left-1/2 -translate-x-1/2"><ChevronUp size={30} /></Flecha>
         <Flecha d={[0, 1]} className="bottom-0 left-1/2 -translate-x-1/2"><ChevronDown size={30} /></Flecha>

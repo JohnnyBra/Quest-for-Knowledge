@@ -59,11 +59,11 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               spellCheck={false}
               value={name}
               onChange={(e) => { setName(e.target.value); setError(''); }}
-              placeholder="Por ejemplo: Lucía"
+              placeholder="Por ejemplo: Lucía…"
               className="campo"
               aria-invalid={!!error}
               aria-describedby="error-nombre"
-              autoFocus
+              autoFocus={typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches}
             />
           </label>
 

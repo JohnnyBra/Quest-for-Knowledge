@@ -2,6 +2,7 @@
    noche violeta, oro viejo y luz de runas. Tailwind sigue para el layout; aquí van color, materiales y movimiento. */
 
 :root {
+  color-scheme: dark;
   --abismo: #0b0916;
   --roca: #0f0c1d;
   --papel: #171327;
