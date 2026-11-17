@@ -35,3 +35,8 @@ lado = max(g.size)
 lienzo = Image.new('RGBA', (lado, lado), (0, 0, 0, 0))
 lienzo.paste(g, ((lado - g.width) // 2, lado - g.height))
 lienzo.resize((640, 640), Image.LANCZOS).save(salida, 'WEBP', quality=88)
+# Aviso: si la última fila tiene mucho opaco, la figura venía cortada por abajo (pies fuera del encuadre).
+alfa = g.split()[3]
+ancho_abajo = sum(1 for x in range(g.width) if alfa.getpixel((x, g.height - 1)) > 128)
+if ancho_abajo > lado * 0.15:
+    print(f'AVISO {salida}: la figura toca el borde inferior en {ancho_abajo}px; ¿pies cortados en la exportación?')

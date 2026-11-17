@@ -302,6 +302,8 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
         ctx.save();
         ctx.translate(px + T / 2, py + T - 2 - bote);
         ctx.scale(heroe.mira, andando ? 1 - Math.abs(Math.sin(heroe.paso)) * 0.03 : 1);
+        // Halo suave de luz para que se distinga sobre suelos oscuros
+        ctx.shadowColor = 'rgba(255,232,190,0.55)'; ctx.shadowBlur = 8;
         ctx.drawImage(h, -lado / 2, -lado, lado, lado);
         ctx.restore();
       } });

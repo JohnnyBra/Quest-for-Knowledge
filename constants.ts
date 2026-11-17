@@ -255,12 +255,12 @@ export const ENEMY_TEMPLATES = [
   { name: "Mago del Tiempo", weakness: Subject.KNOWLEDGE, spriteId: "wizard", spriteUrl: "/arte/monstruos/wizard.webp", description: "Intenta confundirte con fechas históricas erróneas y capitales de países perdidos." },
   { name: "Árbol Engañoso", weakness: Subject.KNOWLEDGE, spriteId: "tree", spriteUrl: "/arte/monstruos/tree.webp", description: "Finge ser una planta inofensiva, pero está lleno de preguntas sobre la fotosíntesis." },
   { name: "Sabueso Infernal", weakness: Subject.MATH, spriteId: "hound", spriteUrl: "/arte/monstruos/hound.webp", description: "Un perro fiero que persigue a los que no se saben la tabla del 7." },
-  { name: "Mimo del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "/arte/monstruos/mime.webp", description: "Un mimo mudo que reta tus habilidades para identificar sinónimos y antónimos." },
+  { name: "Espectro del Silencio", weakness: Subject.LANGUAGE, spriteId: "mime", spriteUrl: "/arte/monstruos/mime.webp", description: "Un espectro encapuchado que se traga las palabras; reta a quien sepa encontrar sinónimos y antónimos." },
 
   // Level 2+ Weaknesses (English & PE)
   { name: "Libro de Gramática Vivo", weakness: Subject.ENGLISH, spriteId: "english1", spriteUrl: "/arte/monstruos/english1.webp", description: "Mastica verbos irregulares y te escupe condicionales en inglés." },
-  { name: "Tetera Espectral", weakness: Subject.ENGLISH, spriteId: "english2", spriteUrl: "/arte/monstruos/english2.webp", description: "Una tetera británica furiosa que exige la hora exacta en inglés." },
-  { name: "Zapatilla Veloz", weakness: Subject.PHYSICAL_ED, spriteId: "pe1", spriteUrl: "/arte/monstruos/pe1.webp", description: "Una zapatilla de deporte poseída que no para de hacer sprints." },
+  { name: "Autómata del Reloj", weakness: Subject.ENGLISH, spriteId: "english2", spriteUrl: "/arte/monstruos/english2.webp", description: "Un gólem de engranajes con un reloj en el pecho que exige la hora exacta en inglés." },
+  { name: "Centauro Veloz", weakness: Subject.PHYSICAL_ED, spriteId: "pe1", spriteUrl: "/arte/monstruos/pe1.webp", description: "Un centauro que no para de hacer sprints; solo quien conoce las reglas del deporte y del calentamiento puede frenarlo." },
   { name: "Balón Prisionero", weakness: Subject.PHYSICAL_ED, spriteId: "pe2", spriteUrl: "/arte/monstruos/pe2.webp", description: "Lanza balonazos a quienes no conocen las reglas del juego y el calentamiento." }
 ];
 
