@@ -8,25 +8,22 @@ export interface Skin {
   id: SkinId;
   nombre: Record<Genero, string>;
   lema: string;
-  formas: [string, string, string];
+  formas: Record<Genero, [string, string, string]>;
 }
 
 export const SKINS: Skin[] = [
-  { id: 'paladin', nombre: { chico: 'Paladín del Saber', chica: 'Paladina del Saber' }, lema: 'Escudo firme, respuesta certera.', formas: ['Escudero', 'Caballero', 'Paladín'] },
-  { id: 'mago', nombre: { chico: 'Hechicero de las Runas', chica: 'Hechicera de las Runas' }, lema: 'Cada palabra es un hechizo.', formas: ['Aprendiz', 'Mago', 'Archimago'] },
-  { id: 'explorador', nombre: { chico: 'Explorador del Bosque', chica: 'Exploradora del Bosque' }, lema: 'Ninguna pregunta se le escapa.', formas: ['Montaraz', 'Cazador', 'Señor de las Bestias'] },
-  { id: 'dragon', nombre: { chico: 'Jinete de Dragón', chica: 'Jinete de Dragón' }, lema: 'Crece con su dragón.', formas: ['Cuidador', 'Guerrero', 'Jinete'] },
+  { id: 'paladin', nombre: { chico: 'Paladín del Saber', chica: 'Paladina del Saber' }, lema: 'Escudo firme, respuesta certera.', formas: { chico: ['Escudero', 'Caballero', 'Paladín'], chica: ['Escudera', 'Dama caballero', 'Paladina'] } },
+  { id: 'mago', nombre: { chico: 'Hechicero de las Runas', chica: 'Hechicera de las Runas' }, lema: 'Cada palabra es un hechizo.', formas: { chico: ['Aprendiz', 'Mago', 'Archimago'], chica: ['Aprendiza', 'Maga', 'Archimaga'] } },
+  { id: 'explorador', nombre: { chico: 'Explorador del Bosque', chica: 'Exploradora del Bosque' }, lema: 'Ninguna pregunta se le escapa.', formas: { chico: ['Montaraz', 'Cazador', 'Señor de las Bestias'], chica: ['Montaraz', 'Cazadora', 'Señora de las Bestias'] } },
+  { id: 'dragon', nombre: { chico: 'Jinete de Dragón', chica: 'Jinete de Dragón' }, lema: 'Crece con su dragón.', formas: { chico: ['Cuidador', 'Guerrero', 'Jinete'], chica: ['Cuidadora', 'Guerrera', 'Jinete'] } },
 ];
 
 export const HEROE_POR_DEFECTO: HeroChoice = { skin: 'paladin', genero: 'chico' };
 
-// ponytail: las formas 2 y 3 llegan en la fase 3; súbelo a 3 cuando estén en public/arte/heroes.
-const FORMAS_HECHAS = 1;
-
 export const formaDe = (level: number): 1 | 2 | 3 => (level >= 7 ? 3 : level >= 4 ? 2 : 1);
 
 export const getHeroArt = (hero: HeroChoice, level: number): string =>
-  `/arte/heroes/${hero.skin}-${hero.genero}-${Math.min(formaDe(level), FORMAS_HECHAS)}.webp`;
+  `/arte/heroes/${hero.skin}-${hero.genero}-${formaDe(level)}.webp`;
 
 type Almacen = Pick<Storage, 'getItem' | 'setItem'>;
 const clave = (nombre: string) => `quest-heroe:${nombre.trim().toLowerCase()}`;

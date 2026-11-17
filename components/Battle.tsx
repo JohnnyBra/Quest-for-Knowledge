@@ -235,14 +235,14 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
           <Placa nombre={player.name} hp={playerHp} max={player.maxHp} color="linear-gradient(90deg,#1f8a55,#6fe3a1)" alinear="text-right" />
         </div>
 
-        <div className={`pedestal absolute bottom-5 left-[4%] md:left-[12%] z-10 ${enemyAnim}`}>
-          <img src={enemy.sprite} alt={enemy.name} className={`luchador ${enemyAnim ? '' : 'respira'}`} style={{ imageRendering: 'pixelated', scale: '-1 1' }} />
-          {golpe?.en === 'enemigo' && <span key={golpe.id} className="numero-dano">{golpe.texto}</span>}
+        <div className={`pedestal absolute bottom-5 left-[4%] md:left-[12%] z-10 ${enemy.isBoss ? 'aura-jefe' : ''} ${enemyHp === 0 ? 'anim-ceniza' : enemyAnim}`}>
+          <img src={enemy.sprite} alt={enemy.name} className={`luchador ${enemy.isBoss ? 'jefe' : ''} ${enemyAnim || enemyHp === 0 ? '' : 'respira'}`} />
+          {golpe?.en === 'enemigo' && <><span key={`c${golpe.id}`} className="chispazo" /><span key={golpe.id} className="numero-dano">{golpe.texto}</span></>}
         </div>
 
         <div className={`pedestal absolute bottom-5 right-[4%] md:right-[12%] z-10 ${playerAnim}`}>
           <img src={getHeroArt(player.hero, player.level)} alt={player.name} className={`luchador ${playerAnim ? '' : 'respira'}`} style={{ scale: '-1 1', animationDelay: '-1.1s' }} />
-          {golpe?.en === 'heroe' && <span key={golpe.id} className="numero-dano">{golpe.texto}</span>}
+          {golpe?.en === 'heroe' && <><span key={`c${golpe.id}`} className="chispazo rojo" /><span key={golpe.id} className="numero-dano">{golpe.texto}</span></>}
         </div>
 
         {(phase === 'RESULT_PLAYER' || phase === 'RESULT_ENEMY') && (

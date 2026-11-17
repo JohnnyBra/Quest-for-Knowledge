@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, TileType, Player, Enemy, GameMap, ItemType, Item, ActiveEnemy, Subject } from './types';
-import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, MAP1_BOULDER_START } from './constants';
+import { LEVELS, MAP_HEIGHT, MAP_WIDTH, ENEMY_TEMPLATES, BOSS_TEMPLATE, GAME_ITEMS, GAME_ITEMS_SPECIAL, MAP1_BOULDER_START, LLAVE_MAESTRA, arteObjeto } from './constants';
 import CanvasMapView from './components/CanvasMapView';
 import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { NARRATIVE } from './data/narrative';
-import { Heart, Sword, Key, X, Zap, Star } from 'lucide-react';
+import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
 import HeroSelect from './components/HeroSelect';
 import { Fondo, Icono, Estandarte } from './components/RetroUI';
@@ -474,7 +474,7 @@ export default function App() {
       hp: activeEnemy.hp,
       maxHp: activeEnemy.maxHp,
       difficulty: isTrap ? (currentLevelIndex + 2) * 2 : Math.floor((currentLevelIndex + 1) * 1.5),
-      sprite: template.spriteUrl || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/94.gif",
+      sprite: template.spriteUrl,
       weakness: template.weakness,
       isBoss: false
     });
@@ -489,7 +489,7 @@ export default function App() {
       hp: 300 + (difficultyMultiplier * 50),
       maxHp: 300 + (difficultyMultiplier * 50),
       difficulty: 3,
-      sprite: BOSS_TEMPLATE.spriteUrl || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif",
+      sprite: BOSS_TEMPLATE.spriteUrl,
       weakness: BOSS_TEMPLATE.weakness,
       isBoss: true
     });
@@ -524,11 +524,8 @@ export default function App() {
           return { ...prev, tiles: res };
        });
 
-       const keyItem = GAME_ITEMS.find(i => i.type === ItemType.KEY);
-       if (keyItem) {
-          setPlayer(prev => ({ ...prev, inventory: [...prev.inventory, keyItem] }));
-          showNotification("¡Has encontrado una LLAVE MAESTRA!");
-       }
+       setPlayer(prev => ({ ...prev, inventory: [...prev.inventory, LLAVE_MAESTRA] }));
+       showNotification("¡Has encontrado una LLAVE MAESTRA!");
     }
 
     if (tile === TileType.CHEST) {
@@ -919,7 +916,7 @@ export default function App() {
   const enJuego = gameState === GameState.MAP || gameState === GameState.BATTLE;
   const heroeArte = getHeroArt(player.hero, player.level);
   const skin = SKINS.find(s => s.id === player.hero.skin)!;
-  const nombreHeroe = `${skin.formas[formaDe(player.level) - 1]} · ${skin.nombre[player.hero.genero]}`;
+  const nombreHeroe = `${skin.formas[player.hero.genero][formaDe(player.level) - 1]} · ${skin.nombre[player.hero.genero]}`;
   const vidaBaja = player.hp / player.maxHp <= 0.3;
 
   if (!isLoggedIn) {
@@ -937,7 +934,10 @@ export default function App() {
           <h2 className="relative text-center text-[clamp(1.6rem,5vw,3.2rem)] m-0" style={{ color: 'var(--dorado-claro)', textShadow: '0 0 30px rgba(232,184,74,.7)' }}>
             ¡La luz del saber te envuelve!
           </h2>
-          <img src={heroeArte} alt="" className="relative silueta w-[min(70vw,320px)] my-6" />
+          <div className="relative w-[min(70vw,340px)] aspect-square my-6">
+            <img src={getHeroArt(player.hero, player.level - 1)} alt="" className="absolute inset-0 w-full evo-sale" />
+            <img src={heroeArte} alt={nombreHeroe} className="absolute inset-0 w-full evo-entra" />
+          </div>
           <p className="relative titulo text-xl text-center" style={{ color: 'var(--runa-clara)' }}>
             {player.level >= 7 ? '¡Alcanzas tu forma definitiva!' : '¡Tu héroe se hace más fuerte!'}
           </p>
@@ -985,7 +985,7 @@ export default function App() {
 
       {/* Aviso flotante */}
       {notification && (
-        <div className="fixed top-28 left-0 w-full flex justify-center px-4 pointer-events-none z-[100]" role="status" aria-live="polite">
+        <div className="fixed top-28 left-0 w-full flex justify-center px-4 pointer-events-none z-[55]" role="status" aria-live="polite">
           <div className="aviso w-full max-w-sm">{notification}</div>
         </div>
       )}
@@ -1025,9 +1025,7 @@ export default function App() {
                 <ul className="grid gap-2 m-0 p-0 list-none">
                   {player.inventory.map((item, idx) => (
                     <li key={idx} className="ficha flex items-center gap-3">
-                      <span className="medallon pointer-events-none" style={{ color: 'var(--dorado-claro)' }}>
-                        {item.type === ItemType.KEY ? <Key size={20} /> : item.type === ItemType.WEAPON ? <Sword size={20} /> : <Heart size={20} />}
-                      </span>
+                      <span className="medallon pointer-events-none !w-14 !h-14"><img src={arteObjeto(item)} alt="" /></span>
                       <div className="flex-1 min-w-0">
                         <p className="m-0 font-bold">{item.name}</p>
                         <p className="m-0 text-sm" style={{ color: 'var(--tenue)' }}>{item.description}</p>

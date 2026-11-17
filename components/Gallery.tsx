@@ -27,11 +27,8 @@ export default function Gallery({ defeatedEnemies = [], onClose }: GalleryProps)
             return (
               <div key={idx} className="ficha flex flex-col items-center text-center" style={visto ? { borderColor: 'var(--marco)' } : { opacity: 0.6 }}>
                 <div className="w-24 h-24 mb-2 grid place-items-center rounded-full" style={{ background: 'radial-gradient(circle at 50% 35%, #3a2f5c, var(--roca))', boxShadow: 'inset 0 0 0 2px var(--borde)' }}>
-                  {visto ? (
-                    <img src={enemy.spriteUrl} alt="" className="w-20 h-20 object-contain" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
-                  ) : (
-                    <span className="titulo text-4xl" style={{ color: 'var(--borde)' }}>?</span>
-                  )}
+                  <img src={enemy.spriteUrl} alt="" className="w-24 h-24 object-contain"
+                    style={{ filter: visto ? 'drop-shadow(0 6px 8px rgba(0,0,0,.6))' : 'brightness(0) opacity(.55) drop-shadow(0 0 1px #6b5aa0)' }} />
                 </div>
                 <h3 className="m-0 text-[0.95rem]" style={{ color: visto ? 'var(--dorado-claro)' : 'var(--tenue)' }}>{visto ? enemy.name : '???'}</h3>
                 {visto && <p className="text-sm mt-1 mb-0" style={{ color: 'var(--tenue)' }}>{enemy.description}</p>}

@@ -24,19 +24,13 @@ const TEMAS: Record<LevelTheme, Tema> = {
   DUNGEON: { suelo: 'mazmorra-suelo', pared: 'mazmorra-pared', techo: '#11101f', luz: '255,146,72', brillo: 0.2, niebla: '9,8,18', nube: '120,100,190', particula: 'ascua' },
 };
 
-// ponytail: monstruos y jefe siguen con los sprites antiguos hasta la fase 4.
-const SPRITE_ENEMIGO: Record<string, string> = {
-  goblin: '302', ogre: '68', slime: '88', skeleton: '105', bat: '41', ghost: '92', snake: '23', knight: '625',
-};
-const spriteEnemigo = (id: string) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${SPRITE_ENEMIGO[id] ?? '94'}.gif`;
-const SPRITE_JEFE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/491.gif';
+const spriteMonstruo = (id: string) => `/arte/monstruos/${id}.webp`;
 
 const CACHE: Record<string, HTMLImageElement> = {};
 const img = (url: string) => {
   if (!CACHE[url]) {
     const i = new Image();
-    if (url.startsWith('http')) i.crossOrigin = 'anonymous';
-    i.src = url;
+        i.src = url;
     CACHE[url] = i;
   }
   return CACHE[url];
@@ -275,9 +269,9 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
             dePie('portal', px, py, T * 1.5);
           } else if (t === TileType.BOSS) {
             luces.push({ x: px + T / 2, y: py + T / 2, r: T * 2, c: '255,70,90', a: 0.3 + Math.sin(s * 2) * 0.1 });
-            const j = img(SPRITE_JEFE);
-            sombra(px + T / 2, py + T - 4, T * 0.5);
-            if (listo(j)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(j, px - 14, py - 26, T + 28, T + 28); ctx.imageSmoothingEnabled = true; }
+            const j = img(spriteMonstruo('boss'));
+            sombra(px + T / 2, py + T - 4, T * 0.55);
+            if (listo(j)) { const l = T * 2.2, flota = reducido ? 0 : Math.sin(s * 1.5) * 3; ctx.drawImage(j, px + T / 2 - l / 2, py + T - l - 2 + flota, l, l); }
           }
         }
       }
@@ -290,8 +284,14 @@ const CanvasMapView: React.FC<MapViewProps> = ({ mapData, player, activeEnemies,
         figuras.push({ y: p.y, dibujar: () => {
           const px = p.x * T, py = p.y * T, bote = reducido ? 0 : Math.sin(s * 4 + e.x) * 3;
           sombra(px + T / 2, py + T - 4, T * 0.32);
-          const i = img(spriteEnemigo(ENEMY_TEMPLATES[e.templateIndex]?.spriteId || 'ghost'));
-          if (listo(i)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(i, px - 8, py - 16 + bote, T + 16, T + 16); ctx.imageSmoothingEnabled = true; }
+          const i = img(spriteMonstruo(ENEMY_TEMPLATES[e.templateIndex]?.spriteId || 'ghost'));
+          // Miran hacia el héroe
+          if (listo(i)) {
+            const l = T * 1.6;
+            ctx.save(); ctx.translate(px + T / 2, py + T - 2 + bote);
+            ctx.scale(heroe.x < p.x ? -1 : 1, 1);
+            ctx.drawImage(i, -l / 2, -l, l, l); ctx.restore();
+          }
         } });
       }
       figuras.push({ y: heroe.y + 0.01, dibujar: () => {
