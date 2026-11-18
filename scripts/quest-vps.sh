@@ -32,6 +32,11 @@ devolver_ranking() {
 
 actualizar() {
   echo "== Actualizando Quest en $APP_DIR"
+  if ! node -e "require('node:sqlite')" 2>/dev/null; then
+    echo "  ✘ Este Node ($(node --version 2>/dev/null)) no trae node:sqlite; hace falta Node ≥ 22.13. Antes de nada:"
+    echo "    export PATH=~/.nvm/versions/node/v22.23.3/bin:\$PATH"
+    exit 1
+  fi
   mkdir -p copias
   local copia="copias/db-$(date +%F-%H%M).json"
   if [[ -f db.json ]]; then
@@ -39,7 +44,7 @@ actualizar() {
     echo "  ✔ Copia del ranking: $copia"
   fi
   if [[ -f quest.db ]]; then
-    local copia_db="copias/quest-$(date +%F-%H%M).db"
+    local copia_db="copias/quest-$(date +%F-%H%M%S).db"
     node -e "new (require('node:sqlite').DatabaseSync)('quest.db').exec(\"VACUUM INTO '$copia_db'\")"
     echo "  ✔ Copia de la base de datos: $copia_db"
   fi
