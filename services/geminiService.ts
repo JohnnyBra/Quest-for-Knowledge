@@ -1,5 +1,5 @@
 import { Question, Subject } from '../types';
-import { STATIC_QUESTIONS } from '../data/questions';
+import { C5 as STATIC_QUESTIONS } from '../data/preguntas/c5';
 
 const globalAskedQuestions = new Set<string>();
 
