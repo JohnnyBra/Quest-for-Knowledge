@@ -13,6 +13,7 @@ import { empezarPartida, terminarPartida } from './services/partida';
 import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
 import HeroSelect from './components/HeroSelect';
+import PanelProfe from './components/PanelProfe';
 import { Fondo, Icono, Estandarte } from './components/RetroUI';
 import { HEROE_POR_DEFECTO, HeroChoice, getHeroArt, SKINS, formaDe } from './heroes';
 
@@ -921,7 +922,7 @@ export default function App() {
   const vidaBaja = player.hp / player.maxHp <= 0.3;
 
   if (yo === undefined) return <div className="min-h-screen"><Fondo /></div>;
-  if (yo?.rol === 'docente') return <div className="min-h-screen"><Fondo /><p className="capa p-10">Panel del profe (Task 9)</p></div>;
+  if (yo?.rol === 'docente') return <PanelProfe nombre={yo.nombre} onSalir={salir} />;
   if (!isLoggedIn) return <LoginScreen onEntrar={alEntrar} />;
   const alumno = yo?.rol === 'alumno' ? yo : null;
   const textos = narrativa(alumno?.clase ?? '5ºB', alumno?.curso ?? 5);
