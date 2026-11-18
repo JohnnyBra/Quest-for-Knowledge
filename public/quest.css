@@ -171,6 +171,11 @@ button { font-family: inherit; touch-action: manipulation; }
 }
 .campo::placeholder { color: #776d8f; letter-spacing: 0.04em; }
 .campo:focus-visible { outline: none; border-color: var(--runa); box-shadow: 0 0 0 3px rgba(185, 155, 255, 0.3); }
+.pestanas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--borde); }
+.pestanas button { padding: 10px 8px; border-radius: 8px; font-weight: 700; color: var(--tenue); line-height: 1.2; }
+.pestanas button[aria-selected="true"] { background: linear-gradient(var(--dorado-claro), var(--dorado)); color: #2a1a00; }
+.pestanas button:focus-visible, .enlace:focus-visible { outline: 2px solid var(--runa); outline-offset: 2px; }
+.enlace { color: var(--runa-clara); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
 
 /* ---------- Escenario del héroe: haz de luz y pedestal ---------- */
 .escenario { position: relative; isolation: isolate; padding: 18px 0 30px; }

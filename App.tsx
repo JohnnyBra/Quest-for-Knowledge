@@ -6,7 +6,10 @@ import Battle from './components/Battle';
 import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
-import { NARRATIVE } from './data/narrative';
+import { narrativa } from './data/narrative';
+import { api, type Yo } from './services/api';
+import { configurarPreguntas } from './services/preguntas';
+import { empezarPartida, terminarPartida } from './services/partida';
 import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
 import HeroSelect from './components/HeroSelect';
@@ -61,6 +64,7 @@ export default function App() {
   const [showGallery, setShowGallery] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [yo, setYo] = useState<Yo | null | undefined>(undefined);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [isEvolving, setIsEvolving] = useState(false);
   const [showShockwave, setShowShockwave] = useState(false);
@@ -190,14 +194,20 @@ export default function App() {
     });
   };
 
-  const handleLogin = (name: string) => {
-    const guardado = null as HeroChoice | null;
-    setPlayer(prev => ({ ...prev, name, hero: guardado ?? prev.hero }));
+  const alEntrar = (y: Yo) => {
+    setYo(y);
+    if (y.rol !== 'alumno') return;
+    configurarPreguntas(y.curso, y.pendientes);
+    setPlayer(prev => ({ ...prev, name: y.nombre, hero: y.heroe ?? prev.hero }));
     setIsLoggedIn(true);
-    setGameState(guardado ? GameState.START_SCREEN : GameState.HERO_SELECT);
+    setGameState(y.heroe ? GameState.START_SCREEN : GameState.HERO_SELECT);
   };
+  const salir = async () => { await api('/api/salir', {}).catch(() => {}); window.location.reload(); };
+
+  useEffect(() => { api<Yo>('/api/yo').then(alEntrar).catch(() => setYo(null)); }, []);
 
   const elegirHeroe = (hero: HeroChoice) => {
+    api('/api/yo/heroe', hero, 'PUT').catch(() => showNotification('No se ha podido guardar el héroe.'));
     setPlayer(prev => ({ ...prev, hero }));
     setGameState(GameState.START_SCREEN);
   };
@@ -209,29 +219,11 @@ export default function App() {
     const timeBonus = Math.max(0, 3000 - (elapsedSeconds * 3));
     const finalScore = finalPlayer.score + timeBonus;
 
-    try {
-      await fetch('/api/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: finalPlayer.name,
-          score: finalScore,
-          level: finalPlayer.level,
-          timeBonus,
-          stats: {
-            correct: finalPlayer.correctAnswers,
-            incorrect: finalPlayer.incorrectAnswers,
-            superEffective: finalPlayer.superEffectiveAnswers,
-            timeInSeconds: elapsedSeconds
-          }
-        })
-      });
-    } catch (error) {
-      console.error('Error saving score:', error);
-    }
+    await terminarPartida({ puntos: finalScore, nivel_heroe: finalPlayer.level, mapa: currentLevelIndex + 1 });
   };
 
   const startGame = () => {
+    void empezarPartida();
     setPlayer(prev => ({
       ...prev,
       startTime: Date.now(),
@@ -928,9 +920,11 @@ export default function App() {
   const nombreHeroe = `${skin.formas[player.hero.genero][formaDe(player.level) - 1]} · ${skin.nombre[player.hero.genero]}`;
   const vidaBaja = player.hp / player.maxHp <= 0.3;
 
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
+  if (yo === undefined) return <div className="min-h-screen"><Fondo /></div>;
+  if (yo?.rol === 'docente') return <div className="min-h-screen"><Fondo /><p className="capa p-10">Panel del profe (Task 9)</p></div>;
+  if (!isLoggedIn) return <LoginScreen onEntrar={alEntrar} />;
+  const alumno = yo?.rol === 'alumno' ? yo : null;
+  const textos = narrativa(alumno?.clase ?? '5ºB', alumno?.curso ?? 5);
 
   return (
     <div className="min-h-screen flex flex-col items-center relative select-none overflow-x-hidden">
@@ -1073,14 +1067,15 @@ export default function App() {
             </div>
             <div className="panel flex flex-col gap-4 text-center md:text-left">
               <div>
-                <p className="m-0 text-sm uppercase tracking-[0.2em]" style={{ color: 'var(--runa-clara)' }}>Repaso de 5º</p>
+                <p className="m-0 text-sm uppercase tracking-[0.2em]" style={{ color: 'var(--runa-clara)' }}>Repaso de {alumno?.curso ?? 5}º</p>
                 <h2 className="m-0 text-[clamp(2rem,5vw,3.2rem)] leading-none" style={{ color: 'var(--dorado)', textShadow: '0 0 26px rgba(232,184,74,.4)' }}>Quest for Knowledge</h2>
                 <p className="mt-3 mb-0 text-lg">¡Hola, <strong style={{ color: 'var(--dorado-claro)' }}>{player.name}</strong>! Hoy luchas como <strong style={{ color: 'var(--dorado-claro)' }}>{skin.nombre[player.hero.genero]}</strong>.</p>
               </div>
               <button className="btn-oro text-xl w-full" onClick={startGame}>Jugar</button>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button className="btn-cuero" onClick={() => setShowLeaderboard(true)}>Ver ranking</button>
                 <button className="btn-cuero" onClick={() => setGameState(GameState.HERO_SELECT)}>Cambiar héroe</button>
+                <button className="btn-cuero" onClick={salir}>Salir</button>
               </div>
             </div>
           </div>
@@ -1089,7 +1084,7 @@ export default function App() {
         {gameState === GameState.NARRATIVE && (
           <RetroBox title={narrativeStep === 'PROLOGUE' ? 'Prólogo' : 'Tu misión'} className="w-full max-w-3xl flex flex-col max-h-[calc(100dvh-140px)] entrar">
             <div className="pergamino overflow-y-auto scroll-fino flex-1 pr-2 mb-5">
-              {narrativeStep === 'PROLOGUE' ? NARRATIVE.PROLOGUE : NARRATIVE.MISSION}
+              {narrativeStep === 'PROLOGUE' ? textos.PROLOGUE : textos.MISSION}
             </div>
             <button className="btn-oro self-center min-w-[240px]" onClick={advanceNarrative}>
               {narrativeStep === 'PROLOGUE' ? 'Siguiente' : 'Aceptar la misión'}
