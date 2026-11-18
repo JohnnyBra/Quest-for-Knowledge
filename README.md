@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Quest for Knowledge
 
-# Run and deploy your AI Studio app
+RPG de repaso para Primaria (3º a 6º) del Colegio La Hispanidad. Creado por Javi Barrero.
 
-This contains everything you need to run your app locally.
+## Clases y cuentas
 
-View your app in AI Studio: https://ai.studio/apps/b49e4b0f-61cd-4c2a-8269-2ed220cb927c
+- El docente se da de alta con el **código de invitación** (`QUEST_INVITACION` en `.env`) y crea clases (curso 3º–6º).
+  Cada clase tiene un código de 6 letras.
+- El alumnado se registra una vez con ese código (nombre, usuario y contraseña) y después entra con su cuenta.
+- Las preguntas salen de la batería del curso de cada alumno (`data/preguntas/`); las falladas vuelven a salir como
+  repaso. Cada respuesta se guarda en `quest.db` (SQLite) para el panel del profe.
 
-## Run Locally
+## En local
 
-**Prerequisites:**  Node.js
+```bash
+npm install
+echo "QUEST_INVITACION=lo-que-quieras" > .env
+npm run dev        # http://localhost:3030
+npm test           # pruebas
+npm run lint       # tipos
+```
 
+## En el VPS
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+`bash scripts/quest-vps.sh actualizar` (copia de `db.json` y de `quest.db`, `git pull`, `npm ci`, compilar, reiniciar
+pm2) o `bash scripts/quest-vps.sh diagnostico`. pm2 debe arrancar Quest con `npm start` (`tsx server.ts`) y
+`NODE_ENV=production`.
