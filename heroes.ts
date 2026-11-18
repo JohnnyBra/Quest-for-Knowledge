@@ -25,17 +25,5 @@ export const formaDe = (level: number): 1 | 2 | 3 => (level >= 7 ? 3 : level >= 
 export const getHeroArt = (hero: HeroChoice, level: number): string =>
   `/arte/heroes/${hero.skin}-${hero.genero}-${formaDe(level)}.webp`;
 
-type Almacen = Pick<Storage, 'getItem' | 'setItem'>;
-const clave = (nombre: string) => `quest-heroe:${nombre.trim().toLowerCase()}`;
-const almacen = (): Almacen | undefined => { try { return globalThis.localStorage; } catch { return undefined; } };
-
-export function cargarHeroe(nombre: string, storage: Almacen | undefined = almacen()): HeroChoice | null {
-  try {
-    const h = JSON.parse(storage?.getItem(clave(nombre)) ?? 'null');
-    return SKINS.some(s => s.id === h?.skin) && (h.genero === 'chico' || h.genero === 'chica') ? { skin: h.skin, genero: h.genero } : null;
-  } catch { return null; }
-}
-
-export function guardarHeroe(nombre: string, hero: HeroChoice, storage: Almacen | undefined = almacen()): void {
-  try { storage?.setItem(clave(nombre), JSON.stringify(hero)); } catch { /* sin almacenamiento: no se recuerda, el juego sigue */ }
-}
+export const esHeroeValido = (h: unknown): h is HeroChoice =>
+  !!h && SKINS.some(s => s.id === (h as HeroChoice).skin) && ((h as HeroChoice).genero === 'chico' || (h as HeroChoice).genero === 'chica');

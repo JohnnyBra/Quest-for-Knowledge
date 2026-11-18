@@ -11,7 +11,7 @@ import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
 import HeroSelect from './components/HeroSelect';
 import { Fondo, Icono, Estandarte } from './components/RetroUI';
-import { HEROE_POR_DEFECTO, HeroChoice, cargarHeroe, guardarHeroe, getHeroArt, SKINS, formaDe } from './heroes';
+import { HEROE_POR_DEFECTO, HeroChoice, getHeroArt, SKINS, formaDe } from './heroes';
 
 const INITIAL_PLAYER: Player = {
   x: LEVELS[0].start.x,
@@ -191,14 +191,13 @@ export default function App() {
   };
 
   const handleLogin = (name: string) => {
-    const guardado = cargarHeroe(name);
+    const guardado = null as HeroChoice | null;
     setPlayer(prev => ({ ...prev, name, hero: guardado ?? prev.hero }));
     setIsLoggedIn(true);
     setGameState(guardado ? GameState.START_SCREEN : GameState.HERO_SELECT);
   };
 
   const elegirHeroe = (hero: HeroChoice) => {
-    guardarHeroe(player.name, hero);
     setPlayer(prev => ({ ...prev, hero }));
     setGameState(GameState.START_SCREEN);
   };

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formaDe, getHeroArt, cargarHeroe, guardarHeroe, SKINS } from '../heroes.ts';
+import { formaDe, getHeroArt, esHeroeValido, SKINS } from '../heroes.ts';
 
 test('forma según nivel: 1-3, 4-6, 7+', () => {
   assert.deepEqual([1, 3, 4, 6, 7, 12].map(formaDe), [1, 1, 2, 2, 3, 3]);
@@ -18,15 +18,9 @@ test('hay 4 skins con nombre de chico y de chica', () => {
   for (const s of SKINS) assert.ok(s.nombre.chico && s.nombre.chica && s.formas.chico.length === 3 && s.formas.chica.length === 3);
 });
 
-test('guardar y cargar el héroe por nombre; sin storage no rompe', () => {
-  const mem = new Map<string, string>();
-  const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
-  guardarHeroe('Ana', { skin: 'mago', genero: 'chica' }, storage);
-  assert.deepEqual(cargarHeroe('ana', storage), { skin: 'mago', genero: 'chica' });
-  assert.equal(cargarHeroe('Luis', storage), null);
-  const roto = { getItem: () => { throw new Error('bloqueado'); }, setItem: () => { throw new Error('bloqueado'); } };
-  assert.equal(cargarHeroe('Ana', roto), null);
-  assert.doesNotThrow(() => guardarHeroe('Ana', { skin: 'mago', genero: 'chica' }, roto));
-  mem.set('quest-heroe:pepe', '{"skin":"hacker","genero":"x"}');
-  assert.equal(cargarHeroe('Pepe', storage), null);
+test('héroe válido: skin conocida y género chico/chica', () => {
+  assert.ok(esHeroeValido({ skin: 'mago', genero: 'chica' }));
+  assert.ok(!esHeroeValido({ skin: 'hacker', genero: 'chica' }));
+  assert.ok(!esHeroeValido({ skin: 'mago', genero: 'x' }));
+  assert.ok(!esHeroeValido(null));
 });
