@@ -25,3 +25,7 @@ dist-ssr
 
 # Copias del ranking que hace scripts/quest-vps.sh en el VPS
 copias/
+
+# Base de datos y configuración del servidor
+quest.db*
+.env

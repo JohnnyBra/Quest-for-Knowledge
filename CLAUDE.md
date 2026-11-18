@@ -119,11 +119,12 @@ Battles are triggered in `App.tsx` and handed off to `Battle.tsx`. The flow:
 - Trap/mimic enemies: `80–100 + (levelIndex + 2) × 50–60` HP
 - Boss: `300 + (levelIndex + 1) × 50` HP
 
-### Leaderboard / persistence
+### Accounts / persistence (`servidor/`)
 
-- Scores saved to `db.json` (flat file) via `/api/score` POST on defeat or victory
-- Only personal best is kept per player name
-- `/api/leaderboard` returns all scores sorted descending
+- SQLite through the built-in `node:sqlite` (`servidor/db.ts`, file `quest.db` or `QUEST_DB`); all `/api` routes in `servidor/app.ts` (`crearApp(db, { invitacion })`), `server.ts` only adds Vite/`dist` and listens. Tests run it against `:memory:`.
+- Teachers sign up with the invitation code `QUEST_INVITACION` (`.env`, read with `process.loadEnvFile`) and create classes (curso 3–6, 6-letter code). Students sign up once with the class code and log in with usuario + contraseña; session = `quest` httpOnly cookie.
+- Each answer goes to `POST /api/respuestas` (curso, materia, texto taken from the bank on the server); `GET /api/yo` returns the student's effective curso (`curso_propio ?? clase.curso`) and pending (failed, never right) question ids. Ranking is per class (best game per student). The old `db.json` ranking is kept as an archive, unused.
+- `npm start` = `tsx server.ts` (`tsx` is a runtime dependency: the server imports the question banks, which use `enum`).
 
 ### Environment
 
