@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Copias del ranking que hace scripts/quest-vps.sh en el VPS
+copias/

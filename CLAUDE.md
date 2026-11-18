@@ -16,6 +16,9 @@ npm run build
 
 # Serve production build
 npm start
+
+# On the VPS (quest.bibliohispa.es): ranking backup + git pull + npm ci + build + pm2 restart
+bash scripts/quest-vps.sh actualizar   # or: diagnostico
 ```
 
 Set `GEMINI_API_KEY` in `.env.local` before running. (The key is injected via `vite.config.ts` as `process.env.GEMINI_API_KEY`, but the Gemini API is not currently called — all questions come from the static bank in `data/questions.ts`.)
