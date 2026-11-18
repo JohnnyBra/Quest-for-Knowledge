@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { abrirDb, type Db } from '../servidor/db.ts';
 import { crearApp } from '../servidor/app.ts';
+import { bateria } from '../data/preguntas/index.ts';
 
 let db: Db, srv: Server, url = '';
 before(async () => {
@@ -124,4 +125,44 @@ test('JSON roto → 400 con mensaje; ruta /api desconocida → 404 JSON', async 
   const r = await fetch(url + '/api/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{roto' });
   assert.equal(r.status, 400); assert.ok((await r.json()).error);
   assert.equal((await cliente()('/api/nada')).estado, 404);
+});
+
+test('respuestas: se guardan con datos de la batería; pendientes y repaso', async () => {
+  const { clase } = await docenteConClase(5);
+  const a = await alumnoEn(clase.codigo);
+  const { datos: { id: partida } } = await a('/api/partidas', {});
+  const q = bateria(5)[3];
+  assert.equal((await a('/api/respuestas', { partida_id: partida, pregunta_id: 'c5-mat-00000000', correcta: true, ms: 10 })).estado, 400);
+  assert.equal((await a('/api/respuestas', { partida_id: partida, pregunta_id: q.id, correcta: 'sí', ms: 10 })).estado, 400);
+  assert.equal((await a('/api/respuestas', { partida_id: partida, pregunta_id: q.id, correcta: false, ms: 4200 })).estado, 200);
+  assert.deepEqual((await a('/api/yo')).datos.pendientes, [q.id]);
+  const fila = db.prepare('SELECT curso, materia, dificultad, texto, correcta, ms FROM respuestas WHERE pregunta_id = ? ORDER BY id DESC').get(q.id) as any;
+  assert.deepEqual({ ...fila }, { curso: 5, materia: q.subject, dificultad: q.difficulty, texto: q.text, correcta: 0, ms: 4200 });
+  await a('/api/respuestas', { partida_id: partida, pregunta_id: q.id, correcta: true, ms: null });
+  assert.deepEqual((await a('/api/yo')).datos.pendientes, []);
+});
+
+test('no se responde ni se cierra la partida de otro', async () => {
+  const { clase } = await docenteConClase();
+  const a = await alumnoEn(clase.codigo), b = await alumnoEn(clase.codigo);
+  const { datos: { id } } = await a('/api/partidas', {});
+  assert.equal((await b('/api/respuestas', { partida_id: id, pregunta_id: bateria(5)[0].id, correcta: true, ms: 1 })).estado, 404);
+  assert.equal((await b(`/api/partidas/${id}/fin`, { puntos: 10, nivel_heroe: 1, mapa: 1 })).estado, 404);
+});
+
+test('fin de partida una sola vez; ranking de la clase con la mejor de cada uno', async () => {
+  const { clase } = await docenteConClase();
+  const { clase: otra } = await docenteConClase();
+  const a = await alumnoEn(clase.codigo), b = await alumnoEn(clase.codigo), c = await alumnoEn(otra.codigo);
+  const jugar = async (cl: ReturnType<typeof cliente>, puntos: number) => {
+    const { datos: { id } } = await cl('/api/partidas', {});
+    return [id, await cl(`/api/partidas/${id}/fin`, { puntos, nivel_heroe: 3, mapa: 2 })] as const;
+  };
+  const [id1, r1] = await jugar(a, 500);
+  assert.equal(r1.estado, 200);
+  assert.equal((await a(`/api/partidas/${id1}/fin`, { puntos: 9999, nivel_heroe: 3, mapa: 2 })).estado, 409);
+  await jugar(a, 900); await jugar(a, 100); await jugar(b, 700); await jugar(c, 5000);
+  assert.equal((await a('/api/partidas/1/fin', { puntos: -5, nivel_heroe: 1, mapa: 1 })).estado, 400);
+  const { datos: ranking } = await a('/api/ranking');
+  assert.deepEqual(ranking.map((r: any) => [r.puntos, r.nivel]), [[900, 3], [700, 3]]);
 });

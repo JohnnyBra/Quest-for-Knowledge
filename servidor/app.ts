@@ -2,6 +2,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import { scryptSync, randomBytes, timingSafeEqual, randomInt } from 'node:crypto';
 import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
+import { preguntaPorId } from '../data/preguntas/index.ts';
 
 type Rol = 'docente' | 'alumno';
 type Sesion = { rol: Rol; id: number; token: string };
@@ -137,7 +138,45 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     res.json({ id: Number(r.lastInsertRowid), nombre, curso, codigo, alumnos: 0 });
   });
 
-  // (Task 4 añade aquí partidas, respuestas y ranking.)
+  const partidaPropia = (id: unknown, alumno: number) =>
+    db.prepare('SELECT id, fin FROM partidas WHERE id = ? AND alumno_id = ?').get(Number(id), alumno) as { id: number; fin: string | null } | undefined;
+
+  app.post('/api/partidas', solo('alumno'), (req, res) => {
+    const r = db.prepare('INSERT INTO partidas (alumno_id) VALUES (?)').run((req as ConSesion).sesion.id);
+    res.json({ id: Number(r.lastInsertRowid) });
+  });
+
+  app.post('/api/partidas/:id/fin', solo('alumno'), (req, res) => {
+    const yo = (req as ConSesion).sesion.id;
+    const puntos = entero(req.body.puntos, 0, 10_000_000), nivel = entero(req.body.nivel_heroe, 1, 999), mapa = entero(req.body.mapa, 1, 99);
+    exigir(puntos !== null && nivel !== null && mapa !== null, 400, 'Datos de la partida no válidos.');
+    const p = partidaPropia(req.params.id, yo);
+    exigir(p, 404, 'Esa partida no existe.');
+    exigir(!p!.fin, 409, 'Esa partida ya estaba terminada.');
+    db.prepare("UPDATE partidas SET fin = datetime('now'), puntos = ?, nivel_heroe = ?, mapa = ? WHERE id = ?").run(puntos, nivel, mapa, p!.id);
+    res.json({ ok: true });
+  });
+
+  app.post('/api/respuestas', solo('alumno'), (req, res) => {
+    const yo = (req as ConSesion).sesion.id;
+    const q = preguntaPorId(limpio(req.body.pregunta_id));
+    exigir(q, 400, 'Pregunta desconocida.');
+    exigir(typeof req.body.correcta === 'boolean', 400, 'Falta saber si la respuesta es correcta.');
+    const p = partidaPropia(req.body.partida_id, yo);
+    exigir(p, 404, 'Esa partida no existe.');
+    db.prepare(`INSERT INTO respuestas (alumno_id, partida_id, pregunta_id, curso, materia, dificultad, texto, correcta, ms)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(yo, p!.id, q!.id, q!.curso, q!.subject, q!.difficulty, q!.text, req.body.correcta ? 1 : 0, entero(req.body.ms, 0, 600_000));
+    res.json({ ok: true });
+  });
+
+  app.get('/api/ranking', solo('alumno'), (req, res) => {
+    // SQLite: con MAX(), las columnas sueltas (nivel) salen de la fila del máximo.
+    res.json(db.prepare(`SELECT a.nombre, MAX(p.puntos) AS puntos, p.nivel_heroe AS nivel
+      FROM partidas p JOIN alumnos a ON a.id = p.alumno_id
+      WHERE a.clase_id = (SELECT clase_id FROM alumnos WHERE id = ?) AND p.puntos IS NOT NULL
+      GROUP BY a.id ORDER BY puntos DESC LIMIT 100`).all((req as ConSesion).sesion.id));
+  });
 
   app.use('/api', (_req, res) => { res.status(404).json({ error: 'No existe esa ruta.' }); });
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
