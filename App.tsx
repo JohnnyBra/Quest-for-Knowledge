@@ -7,7 +7,7 @@ import LoginScreen from './components/LoginScreen';
 import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { narrativa } from './data/narrative';
-import { api, type Yo } from './services/api';
+import { ErrorApi, api, type Yo } from './services/api';
 import { configurarPreguntas, selector, monstruosPosibles } from './services/preguntas';
 import { empezarPartida, terminarPartida, vaciarRespuestas } from './services/partida';
 import { Heart, Sword, X, Zap, Star } from 'lucide-react';
@@ -205,11 +205,20 @@ export default function App() {
   };
   const salir = async () => {
     await vaciarRespuestas(); // lo que quedó sin enviar por falta de red, antes de cerrar la sesión
-    await api('/api/salir', {}).catch(() => {});
-    window.location.reload();
+    const r = await api<{ entrar?: string }>('/api/salir', {}).catch(() => null);
+    if (r?.entrar) window.location.assign(r.entrar); else window.location.reload();
   };
 
-  useEffect(() => { api<Yo>('/api/yo').then(alEntrar).catch(() => setYo(null)); }, []);
+  // Con las cuentas del Gremio: sin sesión, a entrar en el portal (y de vuelta aquí); con Quest cerrado, el aviso.
+  const [cerrado, setCerrado] = useState<string | null>(null);
+  useEffect(() => {
+    api<Yo>('/api/yo').then(alEntrar).catch((e) => {
+      const d = e instanceof ErrorApi ? e.datos : {};
+      if (d.cerrado) return setCerrado(d.entrar);
+      if (d.entrar) return window.location.assign(`${d.entrar}/?volver=${encodeURIComponent(window.location.href)}`);
+      setYo(null);
+    });
+  }, []);
 
   const elegirHeroe = (hero: HeroChoice) => {
     api('/api/yo/heroe', hero, 'PUT').catch(() => showNotification('No se ha podido guardar el héroe.'));
@@ -925,6 +934,7 @@ export default function App() {
   const nombreHeroe = `${skin.formas[player.hero.genero][formaDe(player.level) - 1]} · ${skin.nombre[player.hero.genero]}`;
   const vidaBaja = player.hp / player.maxHp <= 0.3;
 
+  if (cerrado) return <LoginScreen onEntrar={alEntrar} cerrado={cerrado} />;
   if (yo === undefined) return <div className="min-h-screen"><Fondo /></div>;
   if (yo?.rol === 'docente') return <PanelProfe nombre={yo.nombre} onSalir={salir} />;
   if (!isLoggedIn) return <LoginScreen onEntrar={alEntrar} />;

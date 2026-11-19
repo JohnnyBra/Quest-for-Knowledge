@@ -5,6 +5,7 @@ import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
 import { preguntaPorId, cursosConBateria } from '../data/preguntas/index.ts';
 import { cifras, porMateria, masFalladas, listasAlumno, type Fila } from './analisis.ts';
+import { clienteGremio, SinGremio } from './gremio.ts';
 
 type Rol = 'docente' | 'alumno';
 type Sesion = { rol: Rol; id: number; token: string };
@@ -46,12 +47,38 @@ async function validarCuenta(b: any) {
   return { nombre, usuario, clave: await cifrar(clave) };
 }
 
-export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
+const CERRADO = 'Este juego aún no está abierto para tu clase.';
+
+// gremio: cuentas comunes del portal (url: el portal en esta máquina; publico: adónde se va a entrar). Sin él, las de Quest.
+export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url: string; publico: string } } = {}) {
   const app = express();
   app.use(express.json({ limit: '20kb' }));
   app.use((req, _res, next) => { req.body ??= {}; next(); });
+  const gremio = opciones.gremio ? clienteGremio(db, opciones.gremio.url) : null;
+  const entrar = opciones.gremio?.publico;
+  type ConGremio = Request & { sesionGremio?: { rol: Rol; id: number } | null; cerrado?: boolean };
+  // Con el gremio, quién es se pregunta al portal en cada petición a /api; con Quest cerrado para su clase, el
+  // alumno solo puede ver el aviso (/api/yo) y salir.
+  if (gremio) app.use('/api', async (req, res, next) => {
+    try {
+      const s = await gremio.quienEs(req);
+      if (s === 'cerrado') {
+        if (req.path !== '/yo' && req.path !== '/salir') return void res.status(403).json({ error: CERRADO, cerrado: true, entrar });
+        (req as ConGremio).cerrado = true;
+      } else (req as ConGremio).sesionGremio = s;
+      next();
+    } catch (e) { next(e); }
+  });
+  // Un cambio de cuentas: primero el portal (si dice que no, se responde lo mismo); luego se copia su estado.
+  const cambiar = async (req: Request, metodo: string, ruta: string, cuerpo?: unknown) => {
+    const r = await gremio!.pedir(req, metodo, ruta, cuerpo);
+    exigir(r.estado === 200, r.estado, r.datos?.error ?? 'El Gremio no ha aceptado el cambio.');
+    await gremio!.sincronizar(req, (req as ConSesion).sesion.id);
+    return r.datos;
+  };
 
   const leerSesion = (req: Request): Sesion | undefined => {
+    if (gremio) { const s = (req as ConGremio).sesionGremio; return s ? { ...s, token: '' } : undefined; }
     const token = req.headers.cookie?.match(/(?:^|;\s*)quest=([a-f0-9]{64})/)?.[1];
     if (!token) return undefined;
     const s = db.prepare(`SELECT rol, usuario_id AS id FROM sesiones WHERE token = ?
@@ -77,6 +104,8 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
 
   app.get('/api/salud', (_req, res) => { res.json({ ok: true }); });
 
+  // Con el gremio, entrar y darse de alta se hacen en el portal.
+  if (!gremio) {
   app.post('/api/docente/registro', async (req, res) => {
     exigir(opciones.invitacion && limpio(req.body.invitacion) === opciones.invitacion, 403, 'El código de invitación no es correcto.');
     const c = await validarCuenta(req.body);
@@ -113,8 +142,10 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     abrirSesion(res, rol, fila!.id);
     res.json({ ok: true });
   });
+  }
 
-  app.post('/api/salir', (req, res) => {
+  app.post('/api/salir', async (req, res) => {
+    if (gremio) { await gremio.pedir(req, 'POST', '/api/auth/logout', {}); return void res.json({ ok: true, entrar }); }
     const s = leerSesion(req);
     if (s) db.prepare('DELETE FROM sesiones WHERE token = ?').run(s.token);
     res.setHeader('Set-Cookie', 'quest=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
@@ -123,6 +154,8 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
 
   app.get('/api/yo', (req, res) => {
     const s = leerSesion(req);
+    if (gremio && (req as ConGremio).cerrado) return void res.status(403).json({ error: CERRADO, cerrado: true, entrar });
+    if (gremio && !s) return void res.status(401).json({ error: 'Tienes que entrar primero.', entrar });
     exigir(s, 401, 'Tienes que entrar primero.');
     if (s!.rol === 'docente') {
       const d = db.prepare('SELECT nombre, usuario FROM docentes WHERE id = ?').get(s!.id) as any;
@@ -147,13 +180,21 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
   const clasesDe = (docente: number) => db.prepare(`SELECT c.id, c.nombre, c.curso, c.codigo, COUNT(a.id) AS alumnos
     FROM clases c LEFT JOIN alumnos a ON a.clase_id = c.id WHERE c.docente_id = ? GROUP BY c.id ORDER BY c.id`).all(docente);
 
-  app.get('/api/clases', solo('docente'), (req, res) => { res.json(clasesDe((req as ConSesion).sesion.id)); });
+  app.get('/api/clases', solo('docente'), async (req, res) => {
+    if (gremio) await gremio.sincronizar(req, (req as ConSesion).sesion.id);
+    res.json(clasesDe((req as ConSesion).sesion.id));
+  });
 
-  app.post('/api/clases', solo('docente'), (req, res) => {
+  app.post('/api/clases', solo('docente'), async (req, res) => {
     const nombre = limpio(req.body.nombre);
     exigir(nombre.length >= 1 && nombre.length <= 40, 400, 'Escribe el nombre de la clase (máximo 40 letras).');
     const curso = entero(req.body.curso, 3, 6);
     exigir(curso, 400, 'El curso debe ser 3º, 4º, 5º o 6º.');
+    if (gremio) {
+      const r = await cambiar(req, 'POST', '/api/clases', { nombre, curso });
+      const c = db.prepare('SELECT id FROM clases WHERE cuenta_id = ?').get(r.id) as { id: number } | undefined;
+      return void res.json({ id: c?.id ?? null, nombre, curso, codigo: r.codigo, alumnos: 0 });
+    }
     let codigo = nuevoCodigo();
     while (db.prepare('SELECT 1 FROM clases WHERE codigo = ?').get(codigo)) codigo = nuevoCodigo();
     const r = db.prepare('INSERT INTO clases (docente_id, nombre, curso, codigo) VALUES (?, ?, ?, ?)')
@@ -169,14 +210,15 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     return { ...c! };
   };
   const alumnoMio = (req: Request) => {
-    const a = db.prepare(`SELECT a.id, a.nombre, a.usuario, a.curso_propio, c.curso AS curso_clase, c.id AS clase_id, c.nombre AS clase
+    const a = db.prepare(`SELECT a.id, a.cuenta_id, a.nombre, a.usuario, a.curso_propio, c.curso AS curso_clase, c.id AS clase_id, c.nombre AS clase
       FROM alumnos a JOIN clases c ON c.id = a.clase_id WHERE a.id = ? AND c.docente_id = ?`)
       .get(Number(req.params.id), (req as ConSesion).sesion.id) as any;
     exigir(a, 404, 'Ese alumno no existe.');
     return a;
   };
 
-  app.get('/api/clases/:id', solo('docente'), (req, res) => {
+  app.get('/api/clases/:id', solo('docente'), async (req, res) => {
+    if (gremio) await gremio.sincronizar(req, (req as ConSesion).sesion.id);
     const clase = claseMia(req);
     const filas = db.prepare(`${FILAS} JOIN alumnos a ON a.id = r.alumno_id WHERE a.clase_id = ?`).all(clase.id) as unknown as Fila[];
     const alumnos = (db.prepare('SELECT id, nombre, usuario, curso_propio FROM alumnos WHERE clase_id = ? ORDER BY nombre COLLATE NOCASE, id').all(clase.id) as any[])
@@ -206,14 +248,25 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     } else if (req.body.clave !== undefined) {
       const clave = typeof req.body.clave === 'string' ? req.body.clave : '';
       exigir(clave.length >= 4 && clave.length <= 100, 400, 'La contraseña debe tener al menos 4 caracteres.');
+      if (gremio) {
+        exigir(a.cuenta_id !== null, 409, 'Esta cuenta aún no está unida al Gremio.');
+        await cambiar(req, 'POST', `/api/alumnos/${a.cuenta_id}/password`, { password: clave });
+        return void res.json({ ok: true });
+      }
       db.prepare('UPDATE alumnos SET clave = ? WHERE id = ?').run(await cifrar(clave), a.id);
       db.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").run(a.id); // quien estuviera dentro con la vieja, fuera
     } else exigir(false, 400, 'No hay nada que cambiar.');
     res.json({ ok: true });
   });
 
-  app.delete('/api/alumnos/:id', solo('docente'), (req, res) => {
+  app.delete('/api/alumnos/:id', solo('docente'), async (req, res) => {
     const a = alumnoMio(req);
+    // Con el gremio, se da de baja en el portal y, al copiar su estado, se va también de aquí (con lo suyo).
+    if (gremio) {
+      exigir(a.cuenta_id !== null, 409, 'Esta cuenta aún no está unida al Gremio.');
+      await cambiar(req, 'DELETE', `/api/alumnos/${a.cuenta_id}`);
+      return void res.json({ ok: true });
+    }
     db.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").run(a.id);
     db.prepare('DELETE FROM alumnos WHERE id = ?').run(a.id); // partidas y respuestas caen en cascada
     res.json({ ok: true });
@@ -262,6 +315,7 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
   app.use('/api', (_req, res) => { res.status(404).json({ error: 'No existe esa ruta.' }); });
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof Fallo) return res.status(err.estado).json({ error: err.message });
+    if (err instanceof SinGremio) return res.status(503).json({ error: err.message });
     if (err?.status === 400 || err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Petición no válida.' });
     console.error(err);
     res.status(500).json({ error: 'Error del servidor. Inténtalo otra vez.' });

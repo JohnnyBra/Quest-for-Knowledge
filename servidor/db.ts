@@ -31,5 +31,10 @@ export function abrirDb(ruta: string): Db {
       correcta INTEGER NOT NULL, ms INTEGER, fecha TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')));
     CREATE INDEX IF NOT EXISTS respuestas_alumno ON respuestas(alumno_id, pregunta_id);
   `);
+  // Cuentas comunes del Gremio: el id de la cuenta en el portal (servidor/gremio.ts).
+  for (const tabla of ['docentes', 'clases', 'alumnos']) {
+    if (!(db.prepare(`PRAGMA table_info(${tabla})`).all() as any[]).some(c => c.name === 'cuenta_id')) db.exec(`ALTER TABLE ${tabla} ADD COLUMN cuenta_id INTEGER`);
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ${tabla}_cuenta ON ${tabla}(cuenta_id)`);
+  }
   return db;
 }
