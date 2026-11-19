@@ -9,7 +9,7 @@ import { RetroBox, RetroButton } from './components/RetroUI';
 import { narrativa } from './data/narrative';
 import { api, type Yo } from './services/api';
 import { configurarPreguntas } from './services/preguntas';
-import { empezarPartida, terminarPartida } from './services/partida';
+import { empezarPartida, terminarPartida, vaciarRespuestas } from './services/partida';
 import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
 import HeroSelect from './components/HeroSelect';
@@ -203,7 +203,11 @@ export default function App() {
     setIsLoggedIn(true);
     setGameState(y.heroe ? GameState.START_SCREEN : GameState.HERO_SELECT);
   };
-  const salir = async () => { await api('/api/salir', {}).catch(() => {}); window.location.reload(); };
+  const salir = async () => {
+    await vaciarRespuestas(); // lo que quedó sin enviar por falta de red, antes de cerrar la sesión
+    await api('/api/salir', {}).catch(() => {});
+    window.location.reload();
+  };
 
   useEffect(() => { api<Yo>('/api/yo').then(alEntrar).catch(() => setYo(null)); }, []);
 

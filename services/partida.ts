@@ -42,3 +42,4 @@ const partida = crearPartida();
 export const empezarPartida = partida.empezar;
 export const enviarRespuesta = (pregunta_id: string, correcta: boolean, ms: number) => { void partida.responder(pregunta_id, correcta, ms); };
 export const terminarPartida = partida.terminar;
+export const vaciarRespuestas = partida.vaciar;
