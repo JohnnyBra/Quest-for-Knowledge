@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Estandarte, Fondo } from './RetroUI';
 import { api } from '../services/api';
 import VistaClase from './panel/VistaClase';
+import VistaAlumno from './panel/VistaAlumno';
 
 interface Clase { id: number; nombre: string; curso: number; codigo: string; alumnos: number }
 
@@ -49,7 +50,7 @@ export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSali
           <button className="btn-cuero" onClick={onSalir}>Salir</button>
         </div>
 
-        {ruta.vista === 'clase' ? <VistaClase id={ruta.id} /> : ruta.vista === 'alumno' ? <p className="panel">Ficha (Task 5)</p> : (<>
+        {ruta.vista === 'clase' ? <VistaClase id={ruta.id} /> : ruta.vista === 'alumno' ? <VistaAlumno id={ruta.id} /> : (<>
 
         <section className="panel">
           <h3 className="panel-titulo">Mis clases</h3>

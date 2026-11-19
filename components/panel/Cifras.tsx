@@ -23,7 +23,7 @@ export function CifrasGrandes({ c }: { c: Cifras & { activos?: number } }) {
       ) : (
         <figure className="m-0 flex flex-col gap-2">
           <figcaption className="text-sm" style={{ color: 'var(--tenue)' }}>
-            Cada pregunta que ha contestado cada alumno ({pares} en total), según cómo le fue la primera vez y si después la acertó
+            Preguntas contestadas ({pares}), según cómo fue la primera vez y si después se acertaron
           </figcaption>
           <div className="tramos" aria-hidden="true">
             {TRAMOS.filter(t => c[t.clave] > 0).map(t => (
