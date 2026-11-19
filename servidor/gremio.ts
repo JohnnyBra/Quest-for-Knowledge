@@ -1,6 +1,7 @@
 // Cuentas comunes del Gremio (el portal juegos.bibliohispa.es): Quest no guarda contraseñas; pregunta al portal quién
 // es cada cookie y lleva una copia de docentes, clases y alumnos (cuenta_id) para que partidas y respuestas sigan igual.
 // Es el mismo modo cliente que el de las apps del núcleo (plataforma-cole-juegos, servidor/gremio.js).
+import { request } from 'node:http';
 import type { Request } from 'express';
 import type { Db } from './db.ts';
 
@@ -14,6 +15,22 @@ export class SinGremio extends Error {
 // El portal ya no reconoce la sesión (caducó mientras se usaba): a entrar otra vez.
 export class SinSesion extends Error {}
 
+// Una petición al portal con node:http y no con fetch: fetch se niega a hablar con el puerto 5060 del portal
+// («bad port», la lista de puertos inseguros de los navegadores). Pasó en producción el 19-11-2026.
+function http(url: string, metodo: string, cabeceras: Record<string, string>, cuerpo?: string): Promise<{ estado: number; texto: string }> {
+  return new Promise((ok, mal) => {
+    const r = request(url, { method: metodo, headers: cabeceras }, (res) => {
+      let texto = '';
+      res.setEncoding('utf8');
+      res.on('data', (t) => { texto += t; });
+      res.on('end', () => ok({ estado: res.statusCode ?? 0, texto }));
+    });
+    r.on('error', mal);
+    r.setTimeout(10_000, () => r.destroy(new Error('El portal no contesta')));
+    r.end(cuerpo);
+  });
+}
+
 const cookieDe = (req: Request) => req.headers.cookie?.match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]*)`))?.[1] ?? '';
 
 export function clienteGremio(db: Db, urlPortal: string) {
@@ -25,17 +42,16 @@ export function clienteGremio(db: Db, urlPortal: string) {
 
   // La cookie del navegador va tal cual: el portal decide (dueño, caducidad…).
   async function pedir(req: Request, metodo: string, ruta: string, cuerpo?: unknown): Promise<Respuesta> {
-    let r: globalThis.Response;
+    let r: { estado: number; texto: string };
     try {
-      r = await fetch(url + ruta, {
-        method: metodo,
-        headers: { cookie: `${COOKIE}=${cookieDe(req)}`, ...(cuerpo === undefined ? {} : { 'content-type': 'application/json' }) },
-        body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
-      });
+      r = await http(url + ruta, metodo,
+        { cookie: `${COOKIE}=${cookieDe(req)}`, ...(cuerpo === undefined ? {} : { 'content-type': 'application/json' }) },
+        cuerpo === undefined ? undefined : JSON.stringify(cuerpo));
     } catch { throw new SinGremio(); }
-    const datos = await r.json().catch(() => null);
-    if (r.status >= 500 || !datos) throw new SinGremio();
-    return { estado: r.status, datos };
+    let datos: any = null;
+    try { datos = JSON.parse(r.texto); } catch { /* no es JSON */ }
+    if (r.estado >= 500 || !datos) throw new SinGremio();
+    return { estado: r.estado, datos };
   }
 
   // Un valor único (usuario, código) que ya tiene otra fila se le cambia a esa: el portal manda.

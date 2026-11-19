@@ -171,3 +171,15 @@ test('con el portal caído, Quest responde 503 con un mensaje claro', async () =
   // Salir funciona igual: la sesión del portal caducará sola.
   assert.deepEqual((await profe('/api/salir', {})).datos, { ok: true, entrar: 'https://juegos.ejemplo.test' });
 });
+
+test('el cliente del Gremio llega a un portal en el puerto 5060 (fetch lo rechaza: «bad port»)', async (t) => {
+  const { createServer } = await import('node:http');
+  const { clienteGremio } = await import('../servidor/gremio.ts');
+  const srv = createServer((req, res) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ cookie: req.headers.cookie })); });
+  try { await new Promise<void>((ok, mal) => { srv.once('error', mal).listen(5060, '127.0.0.1', () => ok()); }); } catch { t.skip('el 5060 está ocupado'); return; }
+  try {
+    const g = clienteGremio(abrirDb(':memory:'), 'http://127.0.0.1:5060');
+    const r = await g.pedir({ headers: { cookie: 'gremio_sesion=abc' } } as any, 'GET', '/api/yo');
+    assert.deepEqual(r, { estado: 200, datos: { cookie: 'gremio_sesion=abc' } });
+  } finally { srv.close(); }
+});
