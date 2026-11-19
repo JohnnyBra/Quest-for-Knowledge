@@ -1709,7 +1709,7 @@ export const GENERADAS: Record<3 | 4 | 5 | 6, Question[]> = {
     createQ(Subject.ENGLISH, 'boss', 'Which country has English as an official language and has the maple leaf on its flag?', ['Australia', 'Canada', 'New Zealand', 'South Africa'], 1),
     createQ(Subject.ENGLISH, 'boss', 'Find the grammatical error in: "She suggested to go to the beach."', ['She', 'to go', 'to the', 'beach'], 1),
     createQ(Subject.ENGLISH, 'boss', 'What is the meaning of "greenhouse effect"?', ['Pintar las casas de verde', 'Efecto invernadero', 'Cultivar plantas en casa', 'Energía eólica'], 1),
-    createQ(Subject.ENGLISH, 'boss', 'Complete: "Hardly ___ had I arrived when the phone rang."', ['never', 'ever', 'always', 'yet'], 1),
+    createQ(Subject.ENGLISH, 'boss', 'Complete: "I ___ ever eat fast food, because it isn\'t healthy." (casi nunca)', ['almost', 'hardly', 'always', 'yet'], 1),
     createQ(Subject.ENGLISH, 'boss', 'What is the British English equivalent of the American word "elevator"?', ['Escalator', 'Lift', 'Stairs', 'Flat'], 1),
     createQ(Subject.ENGLISH, 'boss', 'Complete: "Despite ___ very cold, we went for a walk along the river."', ['it was', 'being', 'to be', 'was'], 1),
     createQ(Subject.ENGLISH, 'boss', 'Which Sherlock Holmes creator was a famous Scottish writer?', ['Agatha Christie', 'Sir Arthur Conan Doyle', 'Edgar Allan Poe', 'Oscar Wilde'], 1),

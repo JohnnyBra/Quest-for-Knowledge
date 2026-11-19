@@ -2409,9 +2409,9 @@
     - C) Cultivar plantas en casa
     - D) Energía eólica
 
-96. **Complete: "Hardly ___ had I arrived when the phone rang."**
-    - A) never
-    - B) ever (Hardly ever = casi nunca; o "Hardly had I..." inversión) (Correcta)
+96. **Complete: "I ___ ever eat fast food, because it isn't healthy." (casi nunca)**
+    - A) almost
+    - B) hardly (Correcta)
     - C) always
     - D) yet
 

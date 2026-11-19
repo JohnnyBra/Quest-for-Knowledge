@@ -70,6 +70,8 @@ test('respuestas que la nota no debe recortar, y ninguna pregunta con dos opcion
   assert.equal(correcta(6, 'periódico resulta de dividir 1 ÷ 3'), '0,3 periódico');
   const laplace = bateria(6).find(q => q.text.includes('NO sacar una bola azul'))!;
   assert.ok(!laplace.options.includes('5/10'));
+  assert.equal(correcta(6, 'ever eat fast food'), 'hardly');
+  assert.ok(!bateria(6).some(q => q.text.includes('Hardly ___ had I')));
   assert.ok(bateria(6).some(q => q.text.includes('CO₂') || q.options.some(o => o.includes('CO₂'))));
 });
 
