@@ -3,7 +3,7 @@ import { scrypt, randomBytes, timingSafeEqual, randomInt } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
-import { preguntaPorId } from '../data/preguntas/index.ts';
+import { preguntaPorId, cursosConBateria } from '../data/preguntas/index.ts';
 import { cifras, porMateria, masFalladas, listasAlumno, type Fila } from './analisis.ts';
 
 type Rol = 'docente' | 'alumno';
@@ -190,6 +190,7 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     const filas = db.prepare(`${FILAS} WHERE r.alumno_id = ?`).all(a.id) as unknown as Fila[];
     res.json({
       alumno: { id: a.id, nombre: a.nombre, usuario: a.usuario, curso: a.curso_propio ?? a.curso_clase, cursoClase: a.curso_clase, clase: { id: a.clase_id, nombre: a.clase } },
+      cursosPosibles: [3, 4, 5, 6].filter(c => c === a.curso_clase || (c < a.curso_clase && cursosConBateria().includes(c as any))),
       total: cifras(filas), materias: porMateria(filas), ...listasAlumno(filas),
     });
   });
@@ -199,11 +200,13 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     if (req.body.curso !== undefined) {
       const curso = entero(req.body.curso, 3, a.curso_clase);
       exigir(curso, 400, `El curso debe estar entre 3º y ${a.curso_clase}º.`);
+      exigir(curso === a.curso_clase || cursosConBateria().includes(curso as any), 400, `Todavía no hay preguntas de ${curso}º.`);
       db.prepare('UPDATE alumnos SET curso_propio = ? WHERE id = ?').run(curso === a.curso_clase ? null : curso, a.id);
     } else if (req.body.clave !== undefined) {
       const clave = typeof req.body.clave === 'string' ? req.body.clave : '';
       exigir(clave.length >= 4 && clave.length <= 100, 400, 'La contraseña debe tener al menos 4 caracteres.');
       db.prepare('UPDATE alumnos SET clave = ? WHERE id = ?').run(await cifrar(clave), a.id);
+      db.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").run(a.id); // quien estuviera dentro con la vieja, fuera
     } else exigir(false, 400, 'No hay nada que cambiar.');
     res.json({ ok: true });
   });

@@ -15,6 +15,7 @@ export interface ResumenClase {
 
 export interface FichaAlumno {
   alumno: { id: number; nombre: string; usuario: string; curso: number; cursoClase: number; clase: { id: number; nombre: string } };
+  cursosPosibles: number[];
   total: Cifras;
   materias: CifrasMateria[];
   pendientes: Pregunteo[];

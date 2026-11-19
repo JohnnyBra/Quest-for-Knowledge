@@ -274,8 +274,8 @@ test('bajar y volver a subir el curso; límites', async () => {
   const u = unico('baja');
   const a = await alumnoEn(clase.codigo, u);
   const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
-  assert.equal((await profe(`/api/alumnos/${id}`, { curso: 4 }, 'PUT')).estado, 200);
-  assert.equal((await a('/api/yo')).datos.curso, 4);
+  assert.equal((await profe(`/api/alumnos/${id}`, { curso: 5 }, 'PUT')).estado, 200);
+  assert.equal((await a('/api/yo')).datos.curso, 5);
   assert.equal((await profe(`/api/clases/${clase.id}`)).datos.alumnos[0].bajado, true);
   for (const mal of [7, 2, 'cuatro']) assert.equal((await profe(`/api/alumnos/${id}`, { curso: mal }, 'PUT')).estado, 400);
   await profe(`/api/alumnos/${id}`, { curso: 6 }, 'PUT');
@@ -305,4 +305,24 @@ test('quitar a un alumno borra sus datos y su sesión; otro docente no puede', a
   assert.equal((await a('/api/yo')).estado, 401);
   assert.equal((await profe(`/api/clases/${clase.id}`)).datos.total.respuestas, 0);
   assert.equal((db.prepare('SELECT COUNT(*) AS n FROM respuestas WHERE alumno_id = ?').get(id) as any).n, 0);
+});
+
+test('solo se puede bajar a un curso que ya tenga batería de preguntas', async () => {
+  const { profe, clase } = await docenteConClase(6);
+  const u = unico('sinbat');
+  await alumnoEn(clase.codigo, u);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  const r = await profe(`/api/alumnos/${id}`, { curso: 4 }, 'PUT');
+  assert.equal(r.estado, 400);
+  assert.match(r.datos.error, /preguntas/);
+  assert.deepEqual((await profe(`/api/alumnos/${id}`)).datos.cursosPosibles, [5, 6]);
+});
+
+test('cambiar la contraseña cierra las sesiones abiertas del alumno', async () => {
+  const { profe, clase } = await docenteConClase();
+  const u = unico('sesion');
+  const a = await alumnoEn(clase.codigo, u);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  await profe(`/api/alumnos/${id}`, { clave: 'otra12' }, 'PUT');
+  assert.equal((await a('/api/yo')).estado, 401);
 });

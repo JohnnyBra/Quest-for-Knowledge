@@ -37,3 +37,9 @@ test('ids únicos por curso y se encuentran por id', () => {
 test('mientras un curso no tiene batería, usa la de 5º', () => {
   assert.equal(bateria(3)[0].curso, 5);
 });
+
+test('cursos con batería: los que tienen preguntas propias', async () => {
+  const { cursosConBateria } = await import('../data/preguntas/index.ts');
+  assert.deepEqual(cursosConBateria(), CURSOS.filter(c => bateria(c)[0]?.curso === c));
+  assert.ok(cursosConBateria().includes(5));
+});

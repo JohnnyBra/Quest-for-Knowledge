@@ -50,7 +50,9 @@ export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSali
           <button className="btn-cuero" onClick={onSalir}>Salir</button>
         </div>
 
-        {ruta.vista === 'clase' ? <VistaClase id={ruta.id} /> : ruta.vista === 'alumno' ? <VistaAlumno id={ruta.id} /> : (<>
+        {/* key: cada clase o alumno empieza con su estado limpio (sin confirmaciones ni errores del anterior) */}
+        {ruta.vista === 'clase' ? <div key={`c${ruta.id}`} className="contents"><VistaClase id={ruta.id} /></div>
+          : ruta.vista === 'alumno' ? <div key={`a${ruta.id}`} className="contents"><VistaAlumno id={ruta.id} /></div> : (<>
 
         <section className="panel">
           <h3 className="panel-titulo">Mis clases</h3>

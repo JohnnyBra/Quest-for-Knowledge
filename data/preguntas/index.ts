@@ -27,4 +27,6 @@ const POR_ID = new Map(CURSOS.flatMap(c => BATERIAS[c].map(q => [q.id, q] as con
 
 // ponytail: curso sin batería → la de 5º; se quita en la fase 3 cuando estén las de 3º, 4º y 6º.
 export const bateria = (curso: Curso): Pregunta[] => (BATERIAS[curso].length ? BATERIAS[curso] : BATERIAS[5]);
+// Cursos que ya tienen sus propias preguntas (los demás usan las de 5º hasta la fase 3).
+export const cursosConBateria = (): Curso[] => CURSOS.filter(c => BATERIAS[c].length > 0);
 export const preguntaPorId = (id: string): Pregunta | undefined => POR_ID.get(id);

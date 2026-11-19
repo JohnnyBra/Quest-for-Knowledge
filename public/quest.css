@@ -452,4 +452,5 @@ button { font-family: inherit; touch-action: manipulation; }
 .falladas { margin: 0; padding-left: 1.6rem; display: flex; flex-direction: column; gap: 14px; }
 .falladas li::marker { color: var(--dorado); font-family: var(--titulo); }
 .falladas { list-style: decimal; }
-.tabla th:first-child, .tabla td:first-child { position: sticky; left: 0; z-index: 1; background: #1c1730; }
+.tabla th:first-child, .tabla td:first-child { position: sticky; left: 0; z-index: 1; background: var(--papel); }
+@media (max-width: 639px) { .tabla td:first-child a { display: block; max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; } }

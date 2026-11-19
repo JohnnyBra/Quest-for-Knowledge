@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { CifrasGrandes, BarrasMaterias } from './Cifras';
 import { pct, type ResumenClase, type AlumnoFila } from './tipos';
@@ -29,7 +29,9 @@ export default function VistaClase({ id }: { id: number }) {
   const [error, setError] = useState('');
   const [orden, setOrden] = useState<{ clave: keyof AlumnoFila; asc: boolean }>({ clave: 'nombre', asc: true });
 
+  const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => { api<ResumenClase>(`/api/clases/${id}`).then(setDatos).catch(e => setError(e.message)); }, [id]);
+  useEffect(() => { if (datos) titulo.current?.focus(); }, [!!datos]);
 
   if (error) return <p role="alert" className="panel font-bold" style={{ color: '#ff9aa6' }}>{error} <a className="enlace" href="#/">Volver a mis clases</a></p>;
   if (!datos) return <p className="panel" style={{ color: 'var(--tenue)' }}>Cargando la clase…</p>;
@@ -41,7 +43,7 @@ export default function VistaClase({ id }: { id: number }) {
       <div>
         <a className="miga" href="#/">← Mis clases</a>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-2">
-          <h2 className="m-0 text-[clamp(1.8rem,4vw,2.6rem)]" style={{ color: 'var(--dorado)' }}>{clase.nombre}</h2>
+          <h2 ref={titulo} tabIndex={-1} className="m-0 text-[clamp(1.8rem,4vw,2.6rem)] outline-none" style={{ color: 'var(--dorado)' }}>{clase.nombre}</h2>
           <p className="m-0" style={{ color: 'var(--tenue)' }}>
             {clase.curso}º de Primaria. Código para entrar: <strong className="titulo tracking-[0.2em]" style={{ color: 'var(--dorado-claro)' }}>{clase.codigo}</strong>
           </p>
@@ -65,7 +67,7 @@ export default function VistaClase({ id }: { id: number }) {
                   {COLUMNAS.map(c => (
                     <th key={c.clave} className={c.numero ? 'num' : ''} aria-sort={orden.clave === c.clave ? (orden.asc ? 'ascending' : 'descending') : 'none'}>
                       <button type="button" onClick={() => pulsar(c.clave)}>
-                        {c.nombre}{orden.clave === c.clave ? (orden.asc ? ' ▲' : ' ▼') : ''}
+                        {c.nombre}<span aria-hidden="true">{orden.clave === c.clave ? (orden.asc ? ' ▲' : ' ▼') : ''}</span>
                       </button>
                     </th>
                   ))}
