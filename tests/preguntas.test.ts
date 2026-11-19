@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bateria, preguntaPorId, huella, CURSOS } from '../data/preguntas/index.ts';
+import { bateria, preguntaPorId, huella, CURSOS, materiasDe } from '../data/preguntas/index.ts';
 import { Subject } from '../types.ts';
 
 test('huella estable de 8 hex', () => {
@@ -34,12 +34,39 @@ test('ids únicos por curso y se encuentran por id', () => {
   assert.equal(preguntaPorId('c5-mat-00000000'), undefined);
 });
 
-test('mientras un curso no tiene batería, usa la de 5º', () => {
-  assert.equal(bateria(3)[0].curso, 5);
+for (const curso of [3, 4, 6] as const) test(`${curso}º: 300 preguntas, 75 + 25 por materia, sin Inglés ni EF`, () => {
+  const b = bateria(curso);
+  assert.equal(b.length, 300);
+  assert.ok(b.every(q => q.curso === curso));
+  const cuenta = (s: Subject, d: string) => b.filter(q => q.subject === s && q.difficulty === d).length;
+  for (const s of [Subject.LANGUAGE, Subject.MATH, Subject.KNOWLEDGE])
+    assert.deepEqual([cuenta(s, 'explorer'), cuenta(s, 'boss')], [75, 25], s);
+  assert.deepEqual(materiasDe(curso), [Subject.MATH, Subject.LANGUAGE, Subject.KNOWLEDGE]);
+});
+
+test('convertidas: sin LaTeX, negritas ni marcas de correcta, y la correcta no siempre es la misma letra', () => {
+  for (const curso of [3, 4, 6] as const) {
+    const b = bateria(curso);
+    for (const q of b) for (const t of [q.text, ...q.options]) {
+      assert.doesNotMatch(t, /\$|\\|\*\*|\(Correcta/, t);
+      assert.ok(t.trim().length > 0, q.text);
+    }
+    const porLetra = [0, 1, 2, 3].map(i => b.filter(q => q.correctIndex === i).length);
+    assert.ok(Math.min(...porLetra) > 40, `${curso}º: ${porLetra}`);
+  }
+});
+
+test('la pista entre paréntesis de la correcta pasa a la explicación', () => {
+  const q = bateria(3).find(q => q.text.includes('sílabas tiene la palabra "mariposa"'))!;
+  assert.equal(q.options[q.correctIndex], '4 sílabas');
+  assert.equal(q.explanation, 'ma-ri-po-sa');
+});
+
+test('5º conserva sus cinco materias', () => {
+  assert.equal(materiasDe(5).length, 5);
 });
 
 test('cursos con batería: los que tienen preguntas propias', async () => {
   const { cursosConBateria } = await import('../data/preguntas/index.ts');
-  assert.deepEqual(cursosConBateria(), CURSOS.filter(c => bateria(c)[0]?.curso === c));
-  assert.ok(cursosConBateria().includes(5));
+  assert.deepEqual(cursosConBateria(), CURSOS);
 });

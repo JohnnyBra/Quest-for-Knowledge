@@ -307,15 +307,17 @@ test('quitar a un alumno borra sus datos y su sesión; otro docente no puede', a
   assert.equal((db.prepare('SELECT COUNT(*) AS n FROM respuestas WHERE alumno_id = ?').get(id) as any).n, 0);
 });
 
-test('solo se puede bajar a un curso que ya tenga batería de preguntas', async () => {
+test('con todas las baterías, de 6º se puede bajar hasta 3º y el alumno juega con las de ese curso', async () => {
   const { profe, clase } = await docenteConClase(6);
-  const u = unico('sinbat');
-  await alumnoEn(clase.codigo, u);
+  const u = unico('a3');
+  const a = await alumnoEn(clase.codigo, u);
   const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
-  const r = await profe(`/api/alumnos/${id}`, { curso: 4 }, 'PUT');
-  assert.equal(r.estado, 400);
-  assert.match(r.datos.error, /preguntas/);
-  assert.deepEqual((await profe(`/api/alumnos/${id}`)).datos.cursosPosibles, [5, 6]);
+  assert.deepEqual((await profe(`/api/alumnos/${id}`)).datos.cursosPosibles, [3, 4, 5, 6]);
+  assert.equal((await profe(`/api/alumnos/${id}`, { curso: 3 }, 'PUT')).estado, 200);
+  assert.equal((await a('/api/yo')).datos.curso, 3);
+  const { id: partida } = (await a('/api/partidas', {})).datos;
+  assert.equal((await a('/api/respuestas', { partida_id: partida, pregunta_id: bateria(3)[0].id, correcta: false, ms: 1 })).estado, 200);
+  assert.equal((db.prepare('SELECT curso FROM respuestas WHERE alumno_id = ?').get(id) as any).curso, 3);
 });
 
 test('cambiar la contraseña cierra las sesiones abiertas del alumno', async () => {

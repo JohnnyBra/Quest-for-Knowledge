@@ -1,4 +1,5 @@
-import { bateria, type Curso, type Pregunta } from '../data/preguntas/index';
+import { bateria, materiasDe, type Curso, type Pregunta } from '../data/preguntas/index';
+import { Subject } from '../types';
 
 type Dificultad = 'explorer' | 'boss';
 
@@ -37,7 +38,14 @@ export class Selector {
   }
 
   esPendiente(id: string) { return this.pendientes.has(id); }
+
+  materias() { return materiasDe(this.curso); }
 }
+
+// Índices de los monstruos que pueden salir: débiles a una materia del curso; en el primer mapa, sin Inglés ni EF.
+export const monstruosPosibles = (plantillas: { weakness: string }[], mapa: number, materias: string[]) =>
+  plantillas.flatMap((t, i) => materias.includes(t.weakness)
+    && (mapa > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED)) ? [i] : []);
 
 export let selector = new Selector(5, new Set());
 export function configurarPreguntas(curso: Curso, pendientes: string[]) {

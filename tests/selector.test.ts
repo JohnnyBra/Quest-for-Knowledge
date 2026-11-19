@@ -61,3 +61,12 @@ test('una pregunta ya acertada que luego se falla no vuelve a pendientes (como e
   for (let c = 0; c < 5; c++) { s.nuevoCombate(); for (let i = 0; i < 3; i++) s.elegir(MAT, 'explorer'); }
   assert.ok(!s.esPendiente(P));
 });
+
+test('materias del curso: 3º sin Inglés ni EF; los monstruos solo son débiles a materias que hay', async () => {
+  const { monstruosPosibles } = await import('../services/preguntas.ts');
+  assert.deepEqual(new Selector(3, new Set()).materias(), [Subject.MATH, Subject.LANGUAGE, Subject.KNOWLEDGE]);
+  const P = [{ weakness: Subject.MATH }, { weakness: Subject.ENGLISH }, { weakness: Subject.PHYSICAL_ED }];
+  assert.deepEqual(monstruosPosibles(P, 2, new Selector(3, new Set()).materias()), [0]);
+  assert.deepEqual(monstruosPosibles(P, 2, new Selector(5, new Set()).materias()), [0, 1, 2]);
+  assert.deepEqual(monstruosPosibles(P, 0, new Selector(5, new Set()).materias()), [0]); // mapa 1: sin Inglés ni EF
+});
