@@ -336,3 +336,26 @@ test('cambiar la contraseña cierra las sesiones abiertas del alumno', async () 
   await profe(`/api/alumnos/${id}`, { clave: 'otra12' }, 'PUT');
   assert.equal((await a('/api/yo')).estado, 401);
 });
+
+test('reiniciar a un alumno borra sus partidas y respuestas; su cuenta, héroe y curso se quedan', async () => {
+  const { profe, clase } = await docenteConClase(6);
+  const u = unico('reinicio');
+  const a = await alumnoEn(clase.codigo, u);
+  const b = await alumnoEn(clase.codigo);
+  await a('/api/yo/heroe', { heroe: 'guerrero' }, 'PUT');
+  await responder(a, [[0, false], [1, true]]);
+  await responder(b, [[0, true]]);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  await profe(`/api/alumnos/${id}`, { curso: 5 }, 'PUT');
+  const heroe = (db.prepare('SELECT heroe FROM alumnos WHERE id = ?').get(id) as any).heroe;
+  const { profe: otro } = await docenteConClase();
+  assert.equal((await otro(`/api/alumnos/${id}/reiniciar`, {})).estado, 404);
+  assert.equal((await a(`/api/alumnos/${id}/reiniciar`, {})).estado, 403);
+  assert.equal((await profe(`/api/alumnos/${id}/reiniciar`, {})).estado, 200);
+  assert.equal((await profe(`/api/alumnos/${id}`)).datos.total.respuestas, 0);
+  assert.equal((db.prepare('SELECT COUNT(*) AS n FROM partidas WHERE alumno_id = ?').get(id) as any).n, 0);
+  assert.equal((await profe(`/api/clases/${clase.id}`)).datos.total.respuestas, 1);
+  const yo = await a('/api/yo');
+  assert.deepEqual([yo.estado, yo.datos.curso], [200, 5]);
+  assert.equal((db.prepare('SELECT heroe FROM alumnos WHERE id = ?').get(id) as any).heroe, heroe);
+});

@@ -275,6 +275,14 @@ export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url
     res.json({ ok: true });
   });
 
+  // Reiniciar su progreso en Quest: fuera sus partidas y respuestas (las estadísticas vuelven a cero).
+  // La cuenta, el héroe y el curso se quedan; los demás juegos del Gremio no se tocan.
+  app.post('/api/alumnos/:id/reiniciar', solo('docente'), (req, res) => {
+    const a = alumnoMio(req);
+    db.prepare('DELETE FROM partidas WHERE alumno_id = ?').run(a.id); // sus respuestas caen en cascada
+    res.json({ ok: true });
+  });
+
   const partidaPropia = (id: unknown, alumno: number) =>
     db.prepare('SELECT id, fin FROM partidas WHERE id = ? AND alumno_id = ?').get(Number(id), alumno) as { id: number; fin: string | null } | undefined;
 

@@ -26,10 +26,11 @@ export default function VistaAlumno({ id }: { id: number }) {
   const [clave, setClave] = useState('');
   const [aviso, setAviso] = useState<Aviso>(null);
   const [confirmar, setConfirmar] = useState(false);
+  const [confirmarReinicio, setConfirmarReinicio] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
   const cancelar = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (datos) titulo.current?.focus(); }, [!!datos]);
-  useEffect(() => { if (confirmar) cancelar.current?.focus(); }, [confirmar]);
+  useEffect(() => { if (confirmar || confirmarReinicio) cancelar.current?.focus(); }, [confirmar, confirmarReinicio]);
 
   const cargar = () => api<FichaAlumno>(`/api/alumnos/${id}`).then(d => { setDatos(d); setCurso(d.alumno.curso); }).catch(e => setError(e.message));
   useEffect(() => { cargar(); }, [id]);
@@ -47,6 +48,8 @@ export default function VistaAlumno({ id }: { id: number }) {
     `Hecho. Desde ahora a ${alumno.nombre} le salen preguntas de ${curso}º.`);
   const ponerClave = () => hacer(async () => { await api(`/api/alumnos/${id}`, { clave }, 'PUT'); setClave(''); },
     `Contraseña cambiada. Díselo a ${alumno.nombre}: su usuario es ${alumno.usuario}.`);
+  const reiniciar = () => hacer(async () => { await api(`/api/alumnos/${id}/reiniciar`, {}); setConfirmarReinicio(false); await cargar(); },
+    `Progreso de ${alumno.nombre} reiniciado: empieza Quest desde cero.`);
   const quitar = () => hacer(async () => { await api(`/api/alumnos/${id}`, undefined, 'DELETE'); location.replace(`#/clase/${alumno.clase.id}`); }, ''); // replace: sin dejar en el historial la ficha borrada
 
   return (
@@ -98,12 +101,21 @@ export default function VistaAlumno({ id }: { id: number }) {
           <button className="btn-cuero" onClick={ponerClave} disabled={!clave.trim()}>Poner contraseña</button>
         </div>
         <div className="flex flex-wrap items-center gap-3 pt-4 border-t" style={{ borderColor: 'var(--borde)' }}>
+          {confirmarReinicio ? (<>
+            <span className="font-semibold">¿Seguro? Se borra todo lo que {alumno.nombre} ha hecho en Quest y no se puede deshacer. Su cuenta y los demás juegos no se tocan.</span>
+            <button className="btn-peligro" onClick={reiniciar}>Sí, reiniciar su progreso</button>
+            <button ref={cancelar} className="btn-cuero" onClick={() => setConfirmarReinicio(false)}>Cancelar</button>
+          </>) : (
+            <button className="btn-peligro" onClick={() => { setConfirmar(false); setConfirmarReinicio(true); }}>Reiniciar su progreso</button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
           {confirmar ? (<>
             <span className="font-semibold">¿Seguro? Se borran todas sus respuestas.</span>
             <button className="btn-peligro" onClick={quitar}>Sí, quitar de la clase</button>
             <button ref={cancelar} className="btn-cuero" onClick={() => setConfirmar(false)}>Cancelar</button>
           </>) : (
-            <button className="btn-peligro" onClick={() => setConfirmar(true)}>Quitar de la clase</button>
+            <button className="btn-peligro" onClick={() => { setConfirmarReinicio(false); setConfirmar(true); }}>Quitar de la clase</button>
           )}
         </div>
         {/* Siempre montados: los lectores de pantalla solo anuncian los cambios de una región que ya existía */}
