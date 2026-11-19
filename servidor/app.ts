@@ -194,6 +194,27 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     });
   });
 
+  app.put('/api/alumnos/:id', solo('docente'), async (req, res) => {
+    const a = alumnoMio(req);
+    if (req.body.curso !== undefined) {
+      const curso = entero(req.body.curso, 3, a.curso_clase);
+      exigir(curso, 400, `El curso debe estar entre 3º y ${a.curso_clase}º.`);
+      db.prepare('UPDATE alumnos SET curso_propio = ? WHERE id = ?').run(curso === a.curso_clase ? null : curso, a.id);
+    } else if (req.body.clave !== undefined) {
+      const clave = typeof req.body.clave === 'string' ? req.body.clave : '';
+      exigir(clave.length >= 4 && clave.length <= 100, 400, 'La contraseña debe tener al menos 4 caracteres.');
+      db.prepare('UPDATE alumnos SET clave = ? WHERE id = ?').run(await cifrar(clave), a.id);
+    } else exigir(false, 400, 'No hay nada que cambiar.');
+    res.json({ ok: true });
+  });
+
+  app.delete('/api/alumnos/:id', solo('docente'), (req, res) => {
+    const a = alumnoMio(req);
+    db.prepare("DELETE FROM sesiones WHERE rol = 'alumno' AND usuario_id = ?").run(a.id);
+    db.prepare('DELETE FROM alumnos WHERE id = ?').run(a.id); // partidas y respuestas caen en cascada
+    res.json({ ok: true });
+  });
+
   const partidaPropia = (id: unknown, alumno: number) =>
     db.prepare('SELECT id, fin FROM partidas WHERE id = ? AND alumno_id = ?').get(Number(id), alumno) as { id: number; fin: string | null } | undefined;
 
