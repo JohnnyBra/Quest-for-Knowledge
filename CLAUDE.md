@@ -50,9 +50,9 @@ App.tsx (root state machine)
 |---|---|
 | `types.ts` | All shared enums and interfaces (`GameState`, `TileType`, `Player`, `Enemy`, `Item`, `Question`, etc.) |
 | `constants.ts` | Map generators (`generateMap1`–`generateMap5`), `LEVELS` config array, `ENEMY_TEMPLATES`, `BOSS_TEMPLATE`, item templates, tile constants |
-| `services/preguntas.ts` | `Selector`: picks from the bank of the student's effective curso by subject + difficulty, no repeats per session; failed questions come back as 1 of every 3 after 3 battles (repaso) |
+| `services/preguntas.ts` | `Selector`: picks from the bank of the student's effective curso by subject + difficulty, no repeats per session, options shuffled on every pick; failed questions come back as 1 of every 3 after 3 battles (repaso) |
 | `services/api.ts`, `cola.ts`, `partida.ts` | API client, offline-safe answer queue, current game (start/answers/finish) |
-| `data/preguntas/` | One bank per curso (`c3.ts`…`c6.ts`, 200 each: 5 subjects × `explorer`/`boss`); `index.ts` gives ids `c<curso>-<materia>-<FNV hash of text>` and `bateria(curso)` |
+| `data/preguntas/` | One bank per curso. `c5.ts`: the original 200 (hand-written). Everything else is **generated** into `generadas.ts` from Javi's lists in `fuentes/` (`c3/c4/c6.md` = one curso, Lengua/Mates/Medio; `ingles.md`, `ef.md` = one subject, 3º–6º) with `npx tsx scripts/importar-preguntas.ts` (drops Javi's «(Correcta…)» marks and the trailing parenthetical only the correct option has — notes for us, not for students — and turns LaTeX into text) — edit the .md, never `generadas.ts`. 3º/4º/6º: 500 each (5 subjects × 75 explorer + 25 boss); 5º: 400 (its 200 + 100 English + 100 PE from the lists). `index.ts`: ids `c<curso>-<materia>-<FNV hash of text>`, `bateria(curso)`, `materiasDe(curso)` (a curso only offers subjects it has questions for, see `monstruosPosibles`) |
 | `data/narrative.ts` | Story text shown in the NARRATIVE state |
 | `server.ts` | Express server: `/api/leaderboard` (GET) and `/api/score` (POST) backed by `db.json` flat-file; also mounts Vite dev middleware |
 | `components/CanvasMapView.tsx` | Canvas renderer: painted floor/wall textures per theme, objects, smooth movement, lantern light, 3-layer fog, particles; arrow keys + touch D-pad |

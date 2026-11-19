@@ -1,8 +1,6 @@
 import { Subject, type Question } from '../../types';
-import { C3 } from './c3';
-import { C4 } from './c4';
 import { C5 } from './c5';
-import { C6 } from './c6';
+import { GENERADAS } from './generadas';
 
 export type Curso = 3 | 4 | 5 | 6;
 export const CURSOS: Curso[] = [3, 4, 5, 6];
@@ -22,11 +20,13 @@ export function huella(texto: string): string {
 const conId = (curso: Curso, qs: Question[]): Pregunta[] =>
   qs.map(q => ({ ...q, curso, id: `c${curso}-${MATERIA[q.subject]}-${huella(q.text)}` }));
 
-const BATERIAS: Record<Curso, Pregunta[]> = { 3: conId(3, C3), 4: conId(4, C4), 5: conId(5, C5), 6: conId(6, C6) };
+// 5º: su batería de siempre + lo de los listados de Javi (Inglés y EF); 3º, 4º y 6º: solo los listados.
+const BATERIAS = Object.fromEntries(CURSOS.map(c => [c, conId(c, [...(c === 5 ? C5 : []), ...GENERADAS[c]])])) as Record<Curso, Pregunta[]>;
 const POR_ID = new Map(CURSOS.flatMap(c => BATERIAS[c].map(q => [q.id, q] as const)));
 
-// ponytail: curso sin batería → la de 5º; se quita en la fase 3 cuando estén las de 3º, 4º y 6º.
-export const bateria = (curso: Curso): Pregunta[] => (BATERIAS[curso].length ? BATERIAS[curso] : BATERIAS[5]);
-// Cursos que ya tienen sus propias preguntas (los demás usan las de 5º hasta la fase 3).
+export const bateria = (curso: Curso): Pregunta[] => BATERIAS[curso];
 export const cursosConBateria = (): Curso[] => CURSOS.filter(c => BATERIAS[c].length > 0);
+// Materias con preguntas en ese curso, en el orden de Subject (3º, 4º y 6º no tienen Inglés ni EF).
+export const materiasDe = (curso: Curso): string[] =>
+  Object.values(Subject).filter(s => BATERIAS[curso].some(q => q.subject === s));
 export const preguntaPorId = (id: string): Pregunta | undefined => POR_ID.get(id);

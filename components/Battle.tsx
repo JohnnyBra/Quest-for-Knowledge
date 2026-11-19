@@ -147,11 +147,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     } else {
       setBattleStats(s => ({ ...s, incorrect: s.incorrect + 1 }));
       let errorMsg = "";
-      if (isTimeout) {
-        errorMsg = `¡Se acabó el tiempo! La respuesta era: ${question.options[question.correctIndex]}`;
-      } else {
-        errorMsg = `Fallo... La respuesta era: ${question.options[question.correctIndex]}`;
-      }
+      errorMsg = `${isTimeout ? '¡Se acabó el tiempo!' : 'Fallo...'} La respuesta era: ${question.options[question.correctIndex]}`;
       
       if (criticoRef.current && segunda) {
          errorMsg = "¡Fallo en el golpe crítico! " + errorMsg;
@@ -214,7 +210,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     { s: Subject.KNOWLEDGE, icono: <Globe size={28} />, veta: '#6fe3a1', desde: 1 },
     { s: Subject.ENGLISH, icono: <MessageCircle size={28} />, veta: '#7fb6ff', desde: 4 },
     { s: Subject.PHYSICAL_ED, icono: <Dumbbell size={28} />, veta: '#ff9a4d', desde: 7 },
-  ].filter(m => player.level >= m.desde);
+  ].filter(m => player.level >= m.desde && selector.materias().includes(m.s));
 
   const Placa = ({ nombre, hp, max, color, alinear }: { nombre: string; hp: number; max: number; color: string; alinear: string }) => (
     <div className={`placa w-[min(46%,260px)] ${alinear}`}>

@@ -8,7 +8,7 @@ import Leaderboard from './components/Leaderboard';
 import { RetroBox, RetroButton } from './components/RetroUI';
 import { narrativa } from './data/narrative';
 import { api, type Yo } from './services/api';
-import { configurarPreguntas } from './services/preguntas';
+import { configurarPreguntas, selector, monstruosPosibles } from './services/preguntas';
 import { empezarPartida, terminarPartida, vaciarRespuestas } from './services/partida';
 import { Heart, Sword, X, Zap, Star } from 'lucide-react';
 import Gallery from './components/Gallery';
@@ -401,8 +401,8 @@ export default function App() {
       showNotification("¡TRAMPA INVISIBLE! Un monstruo letal aparece...");
 
       const difficultyMultiplier = currentLevelIndex + 2;
-      const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => currentLevelIndex > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
-      const templateIndex = validTemplates[Math.floor(Math.random() * validTemplates.length)].i;
+      const validTemplates = monstruosPosibles(ENEMY_TEMPLATES, currentLevelIndex, selector.materias());
+      const templateIndex = validTemplates[Math.floor(Math.random() * validTemplates.length)];
 
       const trapEnemy: ActiveEnemy = {
         id: `trap-${Date.now()}`,
@@ -545,12 +545,12 @@ export default function App() {
       if (Math.random() < 0.25) {
          showNotification("¡OH NO! ¡EL COFRE ERA UN MIMIC!");
          const difficultyMultiplier = currentLevelIndex + 2;
-         const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => currentLevelIndex > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
+         const validTemplates = monstruosPosibles(ENEMY_TEMPLATES, currentLevelIndex, selector.materias());
          const mimicEnemy: ActiveEnemy = {
            id: `mimic-${Date.now()}`,
            x,
            y,
-           templateIndex: validTemplates[Math.floor(Math.random() * validTemplates.length)].i,
+           templateIndex: validTemplates[Math.floor(Math.random() * validTemplates.length)],
            hp: 80 + (difficultyMultiplier * 60),
            maxHp: 80 + (difficultyMultiplier * 60)
          };
@@ -686,8 +686,8 @@ export default function App() {
     for (let i = 0; i < levelData.enemyCount; i++) {
       if (spawnIndex < validSpawns.length) {
         const { x, y } = validSpawns[spawnIndex];
-        const validTemplates = ENEMY_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => index > 0 || (t.weakness !== Subject.ENGLISH && t.weakness !== Subject.PHYSICAL_ED));
-        const templateIdx = validTemplates[Math.floor(Math.random() * validTemplates.length)].i;
+        const validTemplates = monstruosPosibles(ENEMY_TEMPLATES, index, selector.materias());
+        const templateIdx = validTemplates[Math.floor(Math.random() * validTemplates.length)];
         const difficultyMultiplier = index + 1;
 
         newActiveEnemies.push({
