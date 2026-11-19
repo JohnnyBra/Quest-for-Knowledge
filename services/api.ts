@@ -1,7 +1,8 @@
 import type { HeroChoice } from '../heroes';
 import type { Curso } from '../data/preguntas/index';
 
-export class ErrorApi extends Error { constructor(mensaje: string, public estado: number) { super(mensaje); } }
+// datos: el cuerpo de la respuesta (con el Gremio: «entrar», adónde ir a entrar; «cerrado», juego aún no abierto).
+export class ErrorApi extends Error { constructor(mensaje: string, public estado: number, public datos: any = {}) { super(mensaje); } }
 
 export type Yo =
   | { rol: 'alumno'; nombre: string; usuario: string; clase: string; curso: Curso; heroe: HeroChoice | null; pendientes: string[] }
@@ -17,6 +18,6 @@ export async function api<T = any>(ruta: string, cuerpo?: unknown, metodo = cuer
     });
   } catch { throw new ErrorApi('No se puede conectar con el servidor. Revisa la conexión.', 0); }
   const datos = await r.json().catch(() => ({}));
-  if (!r.ok) throw new ErrorApi(datos.error ?? 'Algo ha fallado. Inténtalo otra vez.', r.status);
+  if (!r.ok) throw new ErrorApi(datos.error ?? 'Algo ha fallado. Inténtalo otra vez.', r.status, datos);
   return datos as T;
 }

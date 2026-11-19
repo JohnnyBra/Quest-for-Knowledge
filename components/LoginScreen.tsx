@@ -25,7 +25,9 @@ const EJEMPLO: Partial<Record<Campo, string>> = { codigo: 'Por ejemplo: K7M2PQ',
 const autocompletar = (campo: Campo, modo: Modo) =>
   campo === 'usuario' ? 'username' : campo === 'clave' ? (modo.includes('registro') ? 'new-password' : 'current-password') : 'off';
 
-export default function LoginScreen({ onEntrar }: { onEntrar: (yo: Yo) => void }) {
+// aviso: en vez del formulario, un mensaje con un botón (cuentas del Gremio: Quest cerrado para la clase, portal sin contestar).
+export type Aviso = { titulo: string; texto: string; enlace: string; boton: string };
+export default function LoginScreen({ onEntrar, aviso }: { onEntrar: (yo: Yo) => void; aviso?: Aviso }) {
   const [modo, setModo] = useState<Modo>('entrar');
   const [datos, setDatos] = useState<Partial<Record<Campo, string>>>({});
   const [error, setError] = useState('');
@@ -69,6 +71,14 @@ export default function LoginScreen({ onEntrar }: { onEntrar: (yo: Yo) => void }
           </div>
         </div>
 
+        {aviso ? (
+          <div className="panel entrar w-full max-w-md mx-auto flex flex-col gap-4 text-center">
+            <h2 className="panel-titulo">{aviso.titulo}</h2>
+            <p className="m-0 text-[1.05rem]" style={{ color: 'var(--tenue)' }}>{aviso.texto}</p>
+            <a className="btn-oro w-full no-underline" href={aviso.enlace}>{aviso.boton}</a>
+            <p className="creditos text-center pt-3 border-t" style={{ borderColor: 'var(--borde)' }}>Creado por Javi Barrero</p>
+          </div>
+        ) : (
         <form onSubmit={enviar} className="panel entrar w-full max-w-md mx-auto flex flex-col gap-4" noValidate>
           {!docente && (
             <div className="pestanas" role="tablist" aria-label="Cómo quieres entrar">
@@ -124,6 +134,7 @@ export default function LoginScreen({ onEntrar }: { onEntrar: (yo: Yo) => void }
 
           <p className="creditos text-center pt-3 border-t" style={{ borderColor: 'var(--borde)' }}>Creado por Javi Barrero</p>
         </form>
+        )}
       </main>
     </div>
   );

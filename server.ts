@@ -9,7 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(__dirname, '.env')); } catch { /* sin .env: valores por defecto */ }
 
 const PORT = Number(process.env.PORT ?? 3030);
-const app = crearApp(abrirDb(process.env.QUEST_DB ?? path.join(__dirname, 'quest.db')), { invitacion: process.env.QUEST_INVITACION });
+// Con GREMIO_URL, las cuentas son las comunes del Gremio (el portal); sin ella, las de Quest.
+const gremio = process.env.GREMIO_URL ? { url: process.env.GREMIO_URL, publico: process.env.GREMIO_PUBLICO ?? process.env.GREMIO_URL } : undefined;
+const app = crearApp(abrirDb(process.env.QUEST_DB ?? path.join(__dirname, 'quest.db')), { invitacion: process.env.QUEST_INVITACION, gremio });
 
 if (process.env.NODE_ENV !== 'production') {
   const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
