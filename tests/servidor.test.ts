@@ -31,6 +31,12 @@ function cliente() {
   };
 }
 
+// responde por un alumno: [pregunta, acierto]
+async function responder(a: ReturnType<typeof cliente>, respuestas: Array<[number, boolean]>) {
+  const { datos: { id } } = await a('/api/partidas', {});
+  for (const [i, bien] of respuestas) await a('/api/respuestas', { partida_id: id, pregunta_id: bateria(5)[i].id, correcta: bien, ms: 1000 });
+}
+
 let n = 0;
 const unico = (base: string) => `${base}${++n}`;
 
@@ -221,4 +227,82 @@ test('dos altas a la vez con el mismo usuario: una entra y la otra recibe 409', 
   const alta = () => cliente()('/api/alumno/registro', { codigo: clase.codigo, nombre: 'G', usuario: u, clave: '1234' });
   const estados = (await Promise.all([alta(), alta()])).map(r => r.estado).sort();
   assert.deepEqual(estados, [200, 409]);
+});
+
+test('resumen de la clase: cifras, materias, alumnado y más falladas', async () => {
+  const { profe, clase } = await docenteConClase(5);
+  const ana = await alumnoEn(clase.codigo), luis = await alumnoEn(clase.codigo);
+  await alumnoEn(clase.codigo); // sin jugar
+  await responder(ana, [[0, false], [0, true], [1, true]]);
+  await responder(luis, [[0, false], [2, false]]);
+  const { estado, datos } = await profe(`/api/clases/${clase.id}`);
+  assert.equal(estado, 200);
+  assert.deepEqual(datos.clase, { id: clase.id, nombre: '6ºB', curso: 5, codigo: clase.codigo });
+  assert.deepEqual([datos.total.respuestas, datos.total.aciertos, datos.total.aprendidas, datos.total.pendientes, datos.total.activos], [5, 2, 1, 2, 2]);
+  assert.equal(datos.alumnos.length, 3);
+  assert.ok(datos.alumnos.every((a: any) => a.curso === 5 && a.bajado === false));
+  assert.equal(datos.masFalladas[0].pregunta_id, bateria(5)[0].id);
+  assert.equal(datos.masFalladas[0].alumnos, 2);
+  assert.ok(datos.materias.length >= 1);
+});
+
+test('clase vacía: todo a cero sin romper', async () => {
+  const { profe, clase } = await docenteConClase();
+  const { datos } = await profe(`/api/clases/${clase.id}`);
+  assert.deepEqual([datos.total.respuestas, datos.total.acierto, datos.total.aprendizaje, datos.alumnos.length, datos.masFalladas.length, datos.materias.length], [0, null, null, 0, 0, 0]);
+});
+
+test('ficha del alumno con sus listas; otro docente no la ve (404)', async () => {
+  const { profe, clase } = await docenteConClase(5);
+  const u = unico('ficha');
+  const a = await alumnoEn(clase.codigo, u);
+  await responder(a, [[0, false], [0, true], [1, false]]);
+  const alumnoId = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  const { datos } = await profe(`/api/alumnos/${alumnoId}`);
+  assert.deepEqual(datos.alumno, { id: alumnoId, nombre: 'Ana', usuario: u, curso: 5, cursoClase: 5, clase: { id: clase.id, nombre: '6ºB' } });
+  assert.deepEqual(datos.aprendidas.map((p: any) => p.pregunta_id), [bateria(5)[0].id]);
+  assert.deepEqual(datos.pendientes.map((p: any) => p.pregunta_id), [bateria(5)[1].id]);
+  const { profe: otro } = await docenteConClase();
+  assert.equal((await otro(`/api/alumnos/${alumnoId}`)).estado, 404);
+  assert.equal((await otro(`/api/clases/${clase.id}`)).estado, 404);
+  assert.equal((await a(`/api/clases/${clase.id}`)).estado, 403);
+  assert.equal((await profe('/api/clases/abc')).estado, 404);
+});
+
+test('bajar y volver a subir el curso; límites', async () => {
+  const { profe, clase } = await docenteConClase(6);
+  const u = unico('baja');
+  const a = await alumnoEn(clase.codigo, u);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  assert.equal((await profe(`/api/alumnos/${id}`, { curso: 4 }, 'PUT')).estado, 200);
+  assert.equal((await a('/api/yo')).datos.curso, 4);
+  assert.equal((await profe(`/api/clases/${clase.id}`)).datos.alumnos[0].bajado, true);
+  for (const mal of [7, 2, 'cuatro']) assert.equal((await profe(`/api/alumnos/${id}`, { curso: mal }, 'PUT')).estado, 400);
+  await profe(`/api/alumnos/${id}`, { curso: 6 }, 'PUT');
+  assert.equal((db.prepare('SELECT curso_propio FROM alumnos WHERE id = ?').get(id) as any).curso_propio, null);
+});
+
+test('el docente pone una contraseña nueva', async () => {
+  const { profe, clase } = await docenteConClase();
+  const u = unico('olvido');
+  await alumnoEn(clase.codigo, u);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  assert.equal((await profe(`/api/alumnos/${id}`, { clave: '12' }, 'PUT')).estado, 400);
+  assert.equal((await profe(`/api/alumnos/${id}`, { clave: 'nueva1' }, 'PUT')).estado, 200);
+  assert.equal((await cliente()('/api/entrar', { rol: 'alumno', usuario: u, clave: 'nueva1' })).estado, 200);
+  assert.equal((await profe(`/api/alumnos/${id}`, {}, 'PUT')).estado, 400);
+});
+
+test('quitar a un alumno borra sus datos y su sesión; otro docente no puede', async () => {
+  const { profe, clase } = await docenteConClase(5);
+  const u = unico('fuera');
+  const a = await alumnoEn(clase.codigo, u);
+  await responder(a, [[0, false]]);
+  const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
+  const { profe: otro } = await docenteConClase();
+  assert.equal((await otro(`/api/alumnos/${id}`, undefined, 'DELETE')).estado, 404);
+  assert.equal((await profe(`/api/alumnos/${id}`, undefined, 'DELETE')).estado, 200);
+  assert.equal((await a('/api/yo')).estado, 401);
+  assert.equal((await profe(`/api/clases/${clase.id}`)).datos.total.respuestas, 0);
+  assert.equal((db.prepare('SELECT COUNT(*) AS n FROM respuestas WHERE alumno_id = ?').get(id) as any).n, 0);
 });

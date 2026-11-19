@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
 import { preguntaPorId } from '../data/preguntas/index.ts';
+import { cifras, porMateria, masFalladas, listasAlumno, type Fila } from './analisis.ts';
 
 type Rol = 'docente' | 'alumno';
 type Sesion = { rol: Rol; id: number; token: string };
@@ -157,6 +158,40 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     const r = db.prepare('INSERT INTO clases (docente_id, nombre, curso, codigo) VALUES (?, ?, ?, ?)')
       .run((req as ConSesion).sesion.id, nombre, curso, codigo);
     res.json({ id: Number(r.lastInsertRowid), nombre, curso, codigo, alumnos: 0 });
+  });
+
+  const FILAS = 'SELECT r.id, r.alumno_id, r.pregunta_id, r.materia, r.correcta, r.texto, r.curso FROM respuestas r';
+  const claseMia = (req: Request) => {
+    const c = db.prepare('SELECT id, nombre, curso, codigo FROM clases WHERE id = ? AND docente_id = ?')
+      .get(Number(req.params.id), (req as ConSesion).sesion.id) as { id: number; nombre: string; curso: number; codigo: string } | undefined;
+    exigir(c, 404, 'Esa clase no existe.');
+    return { ...c! };
+  };
+  const alumnoMio = (req: Request) => {
+    const a = db.prepare(`SELECT a.id, a.nombre, a.usuario, a.curso_propio, c.curso AS curso_clase, c.id AS clase_id, c.nombre AS clase
+      FROM alumnos a JOIN clases c ON c.id = a.clase_id WHERE a.id = ? AND c.docente_id = ?`)
+      .get(Number(req.params.id), (req as ConSesion).sesion.id) as any;
+    exigir(a, 404, 'Ese alumno no existe.');
+    return a;
+  };
+
+  app.get('/api/clases/:id', solo('docente'), (req, res) => {
+    const clase = claseMia(req);
+    const filas = db.prepare(`${FILAS} JOIN alumnos a ON a.id = r.alumno_id WHERE a.clase_id = ?`).all(clase.id) as unknown as Fila[];
+    const alumnos = (db.prepare('SELECT id, nombre, usuario, curso_propio FROM alumnos WHERE clase_id = ? ORDER BY nombre COLLATE NOCASE, id').all(clase.id) as any[])
+      .map(a => ({ id: a.id, nombre: a.nombre, usuario: a.usuario, curso: a.curso_propio ?? clase.curso,
+        bajado: a.curso_propio !== null && a.curso_propio < clase.curso, ...cifras(filas.filter(f => f.alumno_id === a.id)) }));
+    res.json({ clase, total: { ...cifras(filas), activos: new Set(filas.map(f => f.alumno_id)).size },
+      materias: porMateria(filas), alumnos, masFalladas: masFalladas(filas) });
+  });
+
+  app.get('/api/alumnos/:id', solo('docente'), (req, res) => {
+    const a = alumnoMio(req);
+    const filas = db.prepare(`${FILAS} WHERE r.alumno_id = ?`).all(a.id) as unknown as Fila[];
+    res.json({
+      alumno: { id: a.id, nombre: a.nombre, usuario: a.usuario, curso: a.curso_propio ?? a.curso_clase, cursoClase: a.curso_clase, clase: { id: a.clase_id, nombre: a.clase } },
+      total: cifras(filas), materias: porMateria(filas), ...listasAlumno(filas),
+    });
   });
 
   const partidaPropia = (id: unknown, alumno: number) =>
