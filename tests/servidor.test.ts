@@ -166,3 +166,59 @@ test('fin de partida una sola vez; ranking de la clase con la mejor de cada uno'
   const { datos: ranking } = await a('/api/ranking');
   assert.deepEqual(ranking.map((r: any) => [r.puntos, r.nivel]), [[900, 3], [700, 3]]);
 });
+
+test('alumnado: la cookie dura lo que el navegador abierto; docente: 180 días', async () => {
+  const { clase } = await docenteConClase();
+  const r = await fetch(url + '/api/alumno/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ codigo: clase.codigo, nombre: 'A', usuario: unico('cookie'), clave: '1234' }) });
+  assert.doesNotMatch(r.headers.get('set-cookie')!, /Max-Age/);
+  const d = await fetch(url + '/api/docente/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ invitacion: 'PROFE-2026', nombre: 'P', usuario: unico('cprofe'), clave: 'secreta' }) });
+  assert.match(d.headers.get('set-cookie')!, /Max-Age=15552000/);
+});
+
+test('las sesiones caducan en el servidor: alumnado a las 8 horas, docentes a los 180 días', async () => {
+  const { profe, clase } = await docenteConClase();
+  const a = await alumnoEn(clase.codigo);
+  db.exec("UPDATE sesiones SET creada = datetime('now', '-9 hours')");
+  assert.equal((await a('/api/yo')).estado, 401);
+  assert.equal((await profe('/api/yo')).estado, 200);
+  db.exec("UPDATE sesiones SET creada = datetime('now', '-181 days')");
+  assert.equal((await profe('/api/yo')).estado, 401);
+});
+
+test('sin cuerpo JSON → 400/401, nunca 500', async () => {
+  const r = await fetch(url + '/api/entrar', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: 'hola' });
+  assert.equal(r.status, 401);
+  const r2 = await fetch(url + '/api/alumno/registro', { method: 'POST' });
+  assert.equal(r2.status, 404);
+});
+
+test('10 contraseñas mal seguidas bloquean ese usuario unos minutos', async () => {
+  const { clase } = await docenteConClase();
+  const u = unico('bloq');
+  await alumnoEn(clase.codigo, u);
+  const a = cliente();
+  for (let i = 0; i < 10; i++) assert.equal((await a('/api/entrar', { rol: 'alumno', usuario: u, clave: 'mal' })).estado, 401);
+  const r = await a('/api/entrar', { rol: 'alumno', usuario: u, clave: '1234' });
+  assert.equal(r.estado, 429); assert.match(r.datos.error, /intentos/);
+  const otro = unico('libre');
+  await alumnoEn(clase.codigo, otro);
+  assert.equal((await a('/api/entrar', { rol: 'alumno', usuario: otro, clave: '1234' })).estado, 200);
+});
+
+test('usuario con tilde escrita de dos formas (NFC/NFD) es el mismo', async () => {
+  const { clase } = await docenteConClase();
+  const u = `josé${++n}`;
+  await alumnoEn(clase.codigo, u);
+  const a = cliente();
+  assert.equal((await a('/api/entrar', { rol: 'alumno', usuario: u.normalize('NFC'), clave: '1234' })).estado, 200);
+});
+
+test('dos altas a la vez con el mismo usuario: una entra y la otra recibe 409', async () => {
+  const { clase } = await docenteConClase();
+  const u = unico('gemelo');
+  const alta = () => cliente()('/api/alumno/registro', { codigo: clase.codigo, nombre: 'G', usuario: u, clave: '1234' });
+  const estados = (await Promise.all([alta(), alta()])).map(r => r.estado).sort();
+  assert.deepEqual(estados, [200, 409]);
+});

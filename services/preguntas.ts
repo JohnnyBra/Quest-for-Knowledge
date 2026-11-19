@@ -8,6 +8,7 @@ export class Selector {
   private combate = 0;
   private pedidas = 0;
   private vistas = new Map<string, number>(); // id → combate en que salió
+  private acertadas = new Set<string>();
 
   constructor(private curso: Curso, private pendientes: Set<string>, private azar: () => number = Math.random) {}
 
@@ -28,9 +29,14 @@ export class Selector {
     return q;
   }
 
+  // Como en el servidor: pendiente = fallada y nunca acertada. Lo acertado antes de esta sesión no lo sabe el
+  // cliente (solo recibe las pendientes); ponytail: si importa, que /api/yo mande también las acertadas.
   apuntar(id: string, correcta: boolean) {
-    if (correcta) this.pendientes.delete(id); else this.pendientes.add(id);
+    if (correcta) { this.acertadas.add(id); this.pendientes.delete(id); }
+    else if (!this.acertadas.has(id)) this.pendientes.add(id);
   }
+
+  esPendiente(id: string) { return this.pendientes.has(id); }
 }
 
 export let selector = new Selector(5, new Set());

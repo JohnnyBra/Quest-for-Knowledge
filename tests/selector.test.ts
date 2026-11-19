@@ -51,3 +51,13 @@ test('una pendiente de otra materia no se cuela', () => {
   s.nuevoCombate();
   for (let i = 0; i < 6; i++) assert.equal(s.elegir(MAT, 'explorer').subject, MAT);
 });
+
+test('una pregunta ya acertada que luego se falla no vuelve a pendientes (como en el servidor)', () => {
+  const P = bateria(5).find(q => q.subject === MAT && q.difficulty === 'explorer')!.id;
+  const s = new Selector(5, new Set(), primero);
+  s.nuevoCombate();
+  s.apuntar(P, true);
+  s.apuntar(P, false);
+  for (let c = 0; c < 5; c++) { s.nuevoCombate(); for (let i = 0; i < 3; i++) s.elegir(MAT, 'explorer'); }
+  assert.ok(!s.esPendiente(P));
+});

@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
-import { scryptSync, randomBytes, timingSafeEqual, randomInt } from 'node:crypto';
+import { scrypt, randomBytes, timingSafeEqual, randomInt } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
 import { preguntaPorId } from '../data/preguntas/index.ts';
@@ -8,42 +9,53 @@ type Rol = 'docente' | 'alumno';
 type Sesion = { rol: Rol; id: number; token: string };
 type ConSesion = Request & { sesion: Sesion };
 
-const cifrar = (clave: string) => {
+const derivar = promisify(scrypt) as (clave: string, sal: string, largo: number) => Promise<Buffer>;
+const cifrar = async (clave: string) => {
   const sal = randomBytes(16).toString('hex');
-  return `${sal}:${scryptSync(clave, sal, 32).toString('hex')}`;
+  return `${sal}:${(await derivar(clave, sal, 32)).toString('hex')}`;
 };
-const claveBuena = (clave: string, guardada: string) => {
+const claveBuena = async (clave: string, guardada: string) => {
   const [sal, hash] = guardada.split(':');
-  const a = scryptSync(clave, sal, 32), b = Buffer.from(hash, 'hex');
+  const a = await derivar(clave, sal, 32), b = Buffer.from(hash, 'hex');
   return a.length === b.length && timingSafeEqual(a, b);
 };
+// Cuánto dura una sesión: el alumnado comparte aparatos en clase, así que su sesión acaba con el navegador
+// (cookie sin Max-Age) y, por si el navegador la recupera al reabrirse, el servidor la da por caducada a las 8 horas.
+const DURACION = { docente: '-180 days', alumno: '-8 hours' } as const;
+
+// ponytail: intentos fallidos en memoria (se olvidan al reiniciar); basta para una clase.
+const FALLOS_MAX = 10, BLOQUEO_MS = 10 * 60_000;
+const fallos = new Map<string, { n: number; desde: number }>();
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin I, O, 0, 1
 const nuevoCodigo = () => Array.from({ length: 6 }, () => LETRAS[randomInt(LETRAS.length)]).join('');
 
 const limpio = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-const usuarioDe = (v: unknown) => limpio(v).toLocaleLowerCase('es');
+const usuarioDe = (v: unknown) => limpio(v).normalize('NFC').toLocaleLowerCase('es');
 export const entero = (v: unknown, min: number, max: number) =>
   Number.isInteger(v) && (v as number) >= min && (v as number) <= max ? (v as number) : null;
 
 class Fallo extends Error { constructor(public estado: number, mensaje: string) { super(mensaje); } }
 const exigir = (cond: unknown, estado: number, mensaje: string) => { if (!cond) throw new Fallo(estado, mensaje); };
 
-function validarCuenta(b: any) {
+async function validarCuenta(b: any) {
   const nombre = limpio(b.nombre), usuario = usuarioDe(b.usuario), clave = typeof b.clave === 'string' ? b.clave : '';
   exigir(nombre.length >= 1 && nombre.length <= 40, 400, 'Escribe tu nombre (máximo 40 letras).');
   exigir(/^[\p{L}\p{N}._-]{3,20}$/u.test(usuario), 400, 'El usuario debe tener de 3 a 20 letras o números, sin espacios.');
   exigir(clave.length >= 4 && clave.length <= 100, 400, 'La contraseña debe tener al menos 4 caracteres.');
-  return { nombre, usuario, clave: cifrar(clave) };
+  return { nombre, usuario, clave: await cifrar(clave) };
 }
 
 export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
   const app = express();
   app.use(express.json({ limit: '20kb' }));
+  app.use((req, _res, next) => { req.body ??= {}; next(); });
 
   const leerSesion = (req: Request): Sesion | undefined => {
     const token = req.headers.cookie?.match(/(?:^|;\s*)quest=([a-f0-9]{64})/)?.[1];
     if (!token) return undefined;
-    const s = db.prepare('SELECT rol, usuario_id AS id FROM sesiones WHERE token = ?').get(token) as Omit<Sesion, 'token'> | undefined;
+    const s = db.prepare(`SELECT rol, usuario_id AS id FROM sesiones WHERE token = ?
+      AND creada > datetime('now', CASE rol WHEN 'alumno' THEN '${DURACION.alumno}' ELSE '${DURACION.docente}' END)`)
+      .get(token) as Omit<Sesion, 'token'> | undefined;
     return s && { rol: s.rol, id: s.id, token };
   };
   const solo = (rol: Rol) => (req: Request, _res: Response, next: NextFunction) => {
@@ -57,37 +69,46 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     const token = randomBytes(32).toString('hex');
     db.prepare('INSERT INTO sesiones (token, rol, usuario_id) VALUES (?, ?, ?)').run(token, rol, id);
     // ponytail: sin «Secure» porque en local va por http; el túnel del VPS ya sirve por https.
-    res.setHeader('Set-Cookie', `quest=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${180 * 86400}`);
+    res.setHeader('Set-Cookie', `quest=${token}; HttpOnly; SameSite=Lax; Path=/${rol === 'docente' ? `; Max-Age=${180 * 86400}` : ''}`);
   };
   const libre = (tabla: 'docentes' | 'alumnos', usuario: string) =>
     exigir(!db.prepare(`SELECT 1 FROM ${tabla} WHERE usuario = ?`).get(usuario), 409, 'Ese usuario ya existe. Elige otro.');
 
   app.get('/api/salud', (_req, res) => { res.json({ ok: true }); });
 
-  app.post('/api/docente/registro', (req, res) => {
+  app.post('/api/docente/registro', async (req, res) => {
     exigir(opciones.invitacion && limpio(req.body.invitacion) === opciones.invitacion, 403, 'El código de invitación no es correcto.');
-    const c = validarCuenta(req.body);
+    const c = await validarCuenta(req.body);
     libre('docentes', c.usuario);
     const r = db.prepare('INSERT INTO docentes (nombre, usuario, clave) VALUES (?, ?, ?)').run(c.nombre, c.usuario, c.clave);
     abrirSesion(res, 'docente', r.lastInsertRowid);
     res.json({ ok: true });
   });
 
-  app.post('/api/alumno/registro', (req, res) => {
+  app.post('/api/alumno/registro', async (req, res) => {
     const codigo = limpio(req.body.codigo).toUpperCase().replace(/\s+/g, '');
     const clase = db.prepare('SELECT id FROM clases WHERE codigo = ?').get(codigo) as { id: number } | undefined;
     exigir(clase, 404, 'No hay ninguna clase con ese código. Pídeselo a tu maestro o maestra.');
-    const c = validarCuenta(req.body);
+    const c = await validarCuenta(req.body);
     libre('alumnos', c.usuario);
     const r = db.prepare('INSERT INTO alumnos (clase_id, nombre, usuario, clave) VALUES (?, ?, ?, ?)').run(clase!.id, c.nombre, c.usuario, c.clave);
     abrirSesion(res, 'alumno', r.lastInsertRowid);
     res.json({ ok: true });
   });
 
-  app.post('/api/entrar', (req, res) => {
+  app.post('/api/entrar', async (req, res) => {
     const rol: Rol = req.body.rol === 'docente' ? 'docente' : 'alumno';
-    const fila = db.prepare(`SELECT id, clave FROM ${rol}s WHERE usuario = ?`).get(usuarioDe(req.body.usuario)) as { id: number; clave: string } | undefined;
-    exigir(fila && claveBuena(String(req.body.clave ?? ''), fila.clave), 401, 'Usuario o contraseña incorrectos.');
+    const usuario = usuarioDe(req.body.usuario), llave = `${rol}:${usuario}`;
+    const f = fallos.get(llave);
+    if (f && Date.now() - f.desde > BLOQUEO_MS) fallos.delete(llave);
+    exigir((fallos.get(llave)?.n ?? 0) < FALLOS_MAX, 429, 'Demasiados intentos. Espera unos minutos y vuelve a probar.');
+    const fila = db.prepare(`SELECT id, clave FROM ${rol}s WHERE usuario = ?`).get(usuario) as { id: number; clave: string } | undefined;
+    if (!fila || !(await claveBuena(String(req.body.clave ?? ''), fila.clave))) {
+      const g = fallos.get(llave) ?? { n: 0, desde: Date.now() };
+      fallos.set(llave, { n: g.n + 1, desde: g.desde });
+      exigir(false, 401, 'Usuario o contraseña incorrectos.');
+    }
+    fallos.delete(llave);
     abrirSesion(res, rol, fila!.id);
     res.json({ ok: true });
   });
