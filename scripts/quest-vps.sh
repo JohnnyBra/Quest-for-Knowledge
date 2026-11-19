@@ -75,8 +75,13 @@ actualizar() {
     exit 1
   fi
   pm2 restart "$nombre" --update-env
-  sleep 3
-  if curl -sf "http://localhost:$PUERTO/api/salud" > /dev/null; then
+  # tsx tarda unos segundos en arrancar: hasta 30 s antes de dar la alarma
+  local listo=""
+  for _ in $(seq 30); do
+    if curl -sf "http://localhost:$PUERTO/api/salud" > /dev/null; then listo=1; break; fi
+    sleep 1
+  done
+  if [[ -n "$listo" ]]; then
     echo "  ✔ Quest responde en el puerto $PUERTO (proceso pm2: $nombre)"
   else
     echo "  ✘ Quest no responde en el puerto $PUERTO; revisa «pm2 logs $nombre»"
