@@ -1,15 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Estandarte, Fondo } from './RetroUI';
 import { api } from '../services/api';
+import VistaClase from './panel/VistaClase';
 
 interface Clase { id: number; nombre: string; curso: number; codigo: string; alumnos: number }
 
+type Ruta = { vista: 'clases' } | { vista: 'clase'; id: number } | { vista: 'alumno'; id: number };
+const leerRuta = (): Ruta => {
+  const m = location.hash.match(/^#\/(clase|alumno)\/(\d+)$/);
+  return m ? { vista: m[1] as 'clase' | 'alumno', id: Number(m[2]) } : { vista: 'clases' };
+};
+
 export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSalir: () => void }) {
+  const [ruta, setRuta] = useState<Ruta>(leerRuta);
+  useEffect(() => {
+    const cambiar = () => { setRuta(leerRuta()); scrollTo(0, 0); };
+    addEventListener('hashchange', cambiar);
+    return () => removeEventListener('hashchange', cambiar);
+  }, []);
   const [clases, setClases] = useState<Clase[] | null>(null);
   const [nueva, setNueva] = useState({ nombre: '', curso: 5 });
   const [error, setError] = useState('');
 
-  useEffect(() => { api<Clase[]>('/api/clases').then(setClases).catch(e => setError(e.message)); }, []);
+  useEffect(() => { if (ruta.vista === 'clases') api<Clase[]>('/api/clases').then(setClases).catch(e => setError(e.message)); }, [ruta.vista]);
 
   const crear = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -31,11 +44,12 @@ export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSali
       <main className="capa w-full max-w-5xl mx-auto px-4 pt-24 pb-10 flex flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="m-0 text-sm uppercase tracking-[0.2em]" style={{ color: 'var(--runa-clara)' }}>Panel del maestro</p>
-            <h2 className="m-0 text-[clamp(1.8rem,4vw,2.6rem)]" style={{ color: 'var(--dorado)' }}>Hola, {nombre}</h2>
+            <p className="m-0" style={{ color: 'var(--runa-clara)' }}>Panel del maestro de {nombre}</p>
           </div>
           <button className="btn-cuero" onClick={onSalir}>Salir</button>
         </div>
+
+        {ruta.vista === 'clase' ? <VistaClase id={ruta.id} /> : ruta.vista === 'alumno' ? <p className="panel">Ficha (Task 5)</p> : (<>
 
         <section className="panel">
           <h3 className="panel-titulo">Mis clases</h3>
@@ -44,12 +58,13 @@ export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSali
             : (
               <ul className="m-0 p-0 list-none grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {clases.map(c => (
-                  <li key={c.id} className="ficha flex flex-col gap-1">
+                  <li key={c.id}><a href={`#/clase/${c.id}`} className="ficha tarjeta-clase flex flex-col gap-1">
                     <span className="titulo text-xl" style={{ color: 'var(--dorado-claro)' }}>{c.nombre}</span>
                     <span style={{ color: 'var(--tenue)' }}>{c.curso}º de Primaria · {c.alumnos} {c.alumnos === 1 ? 'alumno' : 'alumnos'}</span>
                     <span className="text-sm mt-2" style={{ color: 'var(--tenue)' }}>Código para entrar</span>
-                    <span className="titulo text-3xl tracking-[0.25em] select-all" style={{ color: 'var(--dorado)' }}>{c.codigo}</span>
-                  </li>
+                    <span className="titulo text-3xl tracking-[0.25em]" style={{ color: 'var(--dorado)' }}>{c.codigo}</span>
+                    <span className="enlace mt-2">Ver resultados</span>
+                  </a></li>
                 ))}
               </ul>
             )}
@@ -67,6 +82,7 @@ export default function PanelProfe({ nombre, onSalir }: { nombre: string; onSali
           <button className="btn-oro" type="submit">Crear clase</button>
         </form>
         <p role="alert" className="m-0 min-h-[1.4rem] font-bold" style={{ color: '#ff9aa6' }}>{error}</p>
+        </>)}
       </main>
     </div>
   );
