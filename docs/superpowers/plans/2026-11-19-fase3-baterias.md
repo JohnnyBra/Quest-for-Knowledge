@@ -26,3 +26,10 @@ Un curso sin preguntas de una materia no la ofrece: ni botón en el combate ni m
    `bateria()`; ajustar las pruebas que contaban con él (bajar de curso queda abierto a 3º y 4º).
 3. `materiasDe` + filtro en combate y monstruos; opciones barajadas en `Selector.elegir`.
 4. Recorrido en navegador con una clase de 3º y otra de 6º; revisión independiente; «¿Fusiono y subo?».
+
+## Después: Inglés y EF (Javi, mismo día)
+
+Javi mandó `ingles.md` y `ef.md`: 100 por curso (75 + 25) de 3º a 6º. El conversor lee ya todas las fuentes y genera un
+solo `data/preguntas/generadas.ts` (sin argumentos). 5º suma las suyas a las 40 + 40 que ya tenía (no se sustituyen:
+son preguntas ya revisadas y hay pendientes del alumnado con esos ids). Con eso todos los cursos tienen las cinco
+materias; `materiasDe` se queda por si un curso pierde alguna.

@@ -62,13 +62,13 @@ test('una pregunta ya acertada que luego se falla no vuelve a pendientes (como e
   assert.ok(!s.esPendiente(P));
 });
 
-test('materias del curso: 3º sin Inglés ni EF; los monstruos solo son débiles a materias que hay', async () => {
+test('los monstruos solo son débiles a materias con preguntas en el curso; todos los cursos tienen las cinco', async () => {
   const { monstruosPosibles } = await import('../services/preguntas.ts');
-  assert.deepEqual(new Selector(3, new Set()).materias(), [Subject.MATH, Subject.LANGUAGE, Subject.KNOWLEDGE]);
+  for (const c of [3, 4, 5, 6] as const) assert.equal(new Selector(c, new Set()).materias().length, 5);
   const P = [{ weakness: Subject.MATH }, { weakness: Subject.ENGLISH }, { weakness: Subject.PHYSICAL_ED }];
-  assert.deepEqual(monstruosPosibles(P, 2, new Selector(3, new Set()).materias()), [0]);
-  assert.deepEqual(monstruosPosibles(P, 2, new Selector(5, new Set()).materias()), [0, 1, 2]);
-  assert.deepEqual(monstruosPosibles(P, 0, new Selector(5, new Set()).materias()), [0]); // mapa 1: sin Inglés ni EF
+  assert.deepEqual(monstruosPosibles(P, 2, [Subject.MATH, Subject.LANGUAGE]), [0]);
+  assert.deepEqual(monstruosPosibles(P, 2, new Selector(3, new Set()).materias()), [0, 1, 2]);
+  assert.deepEqual(monstruosPosibles(P, 0, new Selector(3, new Set()).materias()), [0]); // mapa 1: sin Inglés ni EF
 });
 
 test('las opciones se barajan cada vez que sale la pregunta, sin perder la correcta', () => {

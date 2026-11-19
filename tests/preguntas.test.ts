@@ -9,15 +9,6 @@ test('huella estable de 8 hex', () => {
   assert.notEqual(huella('hola'), huella('hola.'));
 });
 
-test('5º: 200 preguntas con el reparto por materia y dificultad', () => {
-  const b = bateria(5);
-  assert.equal(b.length, 200);
-  const cuenta = (s: Subject, d: string) => b.filter(q => q.subject === s && q.difficulty === d).length;
-  assert.deepEqual([cuenta(Subject.MATH, 'explorer'), cuenta(Subject.MATH, 'boss')], [30, 10]);
-  for (const s of [Subject.LANGUAGE, Subject.KNOWLEDGE, Subject.ENGLISH, Subject.PHYSICAL_ED])
-    assert.deepEqual([cuenta(s, 'explorer'), cuenta(s, 'boss')], [27, 13], s);
-});
-
 test('cada pregunta: 4 opciones, respuesta válida, id con curso y materia', () => {
   for (const c of CURSOS) for (const q of bateria(c)) {
     assert.equal(q.options.length, 4, q.text);
@@ -34,21 +25,29 @@ test('ids únicos por curso y se encuentran por id', () => {
   assert.equal(preguntaPorId('c5-mat-00000000'), undefined);
 });
 
-for (const curso of [3, 4, 6] as const) test(`${curso}º: 300 preguntas, 75 + 25 por materia, sin Inglés ni EF`, () => {
+const cuenta = (curso: 3 | 4 | 5 | 6, s: Subject) =>
+  [0, 1].map(j => bateria(curso).filter(q => q.subject === s && q.difficulty === (j ? 'boss' : 'explorer')).length);
+
+for (const curso of [3, 4, 6] as const) test(`${curso}º: 500 preguntas, las cinco materias con 75 + 25`, () => {
   const b = bateria(curso);
-  assert.equal(b.length, 300);
+  assert.equal(b.length, 500);
   assert.ok(b.every(q => q.curso === curso));
-  const cuenta = (s: Subject, d: string) => b.filter(q => q.subject === s && q.difficulty === d).length;
-  for (const s of [Subject.LANGUAGE, Subject.MATH, Subject.KNOWLEDGE])
-    assert.deepEqual([cuenta(s, 'explorer'), cuenta(s, 'boss')], [75, 25], s);
-  assert.deepEqual(materiasDe(curso), [Subject.MATH, Subject.LANGUAGE, Subject.KNOWLEDGE]);
+  for (const s of Object.values(Subject)) assert.deepEqual(cuenta(curso, s), [75, 25], s);
+  assert.equal(materiasDe(curso).length, 5);
+});
+
+test('5º: sus 200 de siempre más 100 de Inglés y 100 de EF de los listados', () => {
+  assert.equal(bateria(5).length, 400);
+  assert.deepEqual(cuenta(5, Subject.ENGLISH), [27 + 75, 13 + 25]);
+  assert.deepEqual(cuenta(5, Subject.PHYSICAL_ED), [27 + 75, 13 + 25]);
+  assert.deepEqual(cuenta(5, Subject.MATH), [30, 10]);
 });
 
 test('convertidas: sin LaTeX, negritas ni marcas de correcta', () => {
-  for (const curso of [3, 4, 6] as const) {
-    const b = bateria(curso);
+  for (const curso of [3, 4, 5, 6] as const) {
+    const b = bateria(curso).filter(q => curso !== 5 || q.subject === Subject.ENGLISH || q.subject === Subject.PHYSICAL_ED);
     for (const q of b) for (const t of [q.text, ...q.options]) {
-      assert.doesNotMatch(t, /\$|\\|\*|_\d|\(Correcta/, t);
+      assert.doesNotMatch(t, /\$(?!\))|\\|\*|_\d|\(Correcta/, t);
       assert.ok(t.trim().length > 0, q.text);
     }
   }
@@ -74,8 +73,9 @@ test('respuestas que la nota no debe recortar, y ninguna pregunta con dos opcion
   assert.ok(bateria(6).some(q => q.text.includes('CO₂') || q.options.some(o => o.includes('CO₂'))));
 });
 
-test('5º conserva sus cinco materias', () => {
-  assert.equal(materiasDe(5).length, 5);
+test('notas «(Correcta - …)» también en Inglés y EF', () => {
+  const q = bateria(5).concat(bateria(6), bateria(4), bateria(3)).find(q => q.options.includes('Wardrobe'))!;
+  assert.equal(q.options[q.correctIndex], 'Wardrobe');
 });
 
 test('cursos con batería: los que tienen preguntas propias', async () => {

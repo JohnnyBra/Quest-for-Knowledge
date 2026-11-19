@@ -116,7 +116,7 @@ Pantalla propia en el mismo SPA (entra quien inicia sesión como docente), con e
 1. **Cuentas y respuestas** (hecha 2026-11-19): base de datos, API de cuentas, clases, partidas y respuestas; entrada con registro; héroe
    en la cuenta; ranking por clase; batería de 5º con identificadores y selector por curso con repaso.
 2. **Panel del profe** (hecha 2026-11-19): `analizar`, rutas de resumen y ficha, pantallas del panel.
-3. **Baterías de 3º, 4º y 6º** (hecha 2026-11-19, con los listados de Javi: 300 por curso, sin Inglés ni EF):
+3. **Baterías de 3º, 4º y 6º** (hecha 2026-11-19, con los listados de Javi: 500 por curso en 3º, 4º y 6º; 5º suma 100 de Inglés y 100 de EF):
    ~~600 preguntas en `c3.ts`, `c4.ts`, `c6.ts`, revisables por Javi (también en un
    `preguntas-cN.md` legible, como `preguntasquest.md`).~~ Fuentes en `data/preguntas/fuentes/`.
 

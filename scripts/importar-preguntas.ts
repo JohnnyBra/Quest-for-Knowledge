@@ -1,12 +1,13 @@
-// Convierte una «Batería Maestra» de Javi (Markdown) en data/preguntas/cN.ts.
-// Uso: npx tsx scripts/importar-preguntas.ts <archivo.md> <curso>
+// Convierte las «Baterías Maestras» de Javi (data/preguntas/fuentes/*.md) en data/preguntas/generadas.ts.
+// Uso: npx tsx scripts/importar-preguntas.ts
+// Fuentes: cN.md = un curso con varias materias (una por bloque «## …»); ingles.md y ef.md = una materia con un bloque
+// «## … Nº DE PRIMARIA» por curso.
 // Quita la nota entre paréntesis de la correcta («(Correcta)», «(Correcta - …)» y el paréntesis final que solo lleva
 // ella: son notas para marcarla, no para el alumnado) y convierte las fórmulas LaTeX en texto. Las opciones las baraja
 // el juego cada vez que sale la pregunta.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
-const [archivo, curso] = process.argv.slice(2);
-if (!archivo || !/^[346]$/.test(curso ?? '')) { console.error('Uso: importar-preguntas.ts <archivo.md> <3|4|6>'); process.exit(1); }
+const FUENTES = 'data/preguntas/fuentes';
 
 const SUPER: Record<string, string> = { '2': '²', '3': '³', '4': '⁴' };
 const latex = (t: string) => t.replace(/\$([^$]*)\$/g, (_, f: string) => f
@@ -32,47 +33,50 @@ function finalEntreParentesis(t: string): [string, string] | null {
 }
 
 const MATERIA = [['LENGUA', 'LANGUAGE'], ['MATEMÁTICAS', 'MATH'], ['CONOCIMIENTO DEL MEDIO', 'KNOWLEDGE']] as const;
-type P = { materia: string; dif: 'explorer' | 'boss'; texto: string; opciones: string[]; correcta: number; linea: number };
+type P = { curso: number; materia: string; dif: 'explorer' | 'boss'; texto: string; opciones: string[]; correcta: number; donde: string };
+const POR_ARCHIVO: Record<string, string> = { 'ingles.md': 'ENGLISH', 'ef.md': 'PHYSICAL_ED' };
 const ps: P[] = [];
-let materia = '', dif: 'explorer' | 'boss' = 'explorer';
-readFileSync(archivo, 'utf8').split(/\r?\n/).forEach((l, i) => {
-  let m;
-  if (l.startsWith('## ')) materia = MATERIA.find(([k]) => l.toUpperCase().includes(k))?.[1] ?? '';
-  else if (l.startsWith('### ')) dif = /jefe/i.test(l) ? 'boss' : 'explorer';
-  else if ((m = l.match(/^\d+\.\s+(.*)$/))) ps.push({ materia, dif, texto: limpiar(m[1]), opciones: [], correcta: -1, linea: i + 1 });
-  else if ((m = l.match(/^\s+- [A-D]\)\s*(.*)$/))) {
-    const p = ps.at(-1)!;
-    let o = m[1];
-    const marca = o.match(/\s*\(Correcta(?:\s*-\s*[^)]*)?\)\s*$/);
-    if (marca) { p.correcta = p.opciones.length; o = o.slice(0, marca.index); }
-    p.opciones.push(limpiar(o));
-  }
-});
+for (const archivo of readdirSync(FUENTES).filter(f => f.endsWith('.md')).sort()) {
+  const fija = POR_ARCHIVO[archivo];
+  let curso = Number(archivo.match(/^c(\d)\.md$/)?.[1] ?? 0), materia = fija ?? '', dif: 'explorer' | 'boss' = 'explorer';
+  readFileSync(`${FUENTES}/${archivo}`, 'utf8').split(/\r?\n/).forEach((l, i) => {
+    let m;
+    if (l.startsWith('## ')) {
+      if (fija) curso = Number(l.match(/([3-6])º DE PRIMARIA/i)?.[1] ?? 0);
+      else materia = MATERIA.find(([k]) => l.toUpperCase().includes(k))?.[1] ?? '';
+    }
+    else if (l.startsWith('### ')) dif = /jefe|boss/i.test(l) ? 'boss' : 'explorer';
+    else if ((m = l.match(/^\d+\.\s+(.*)$/))) ps.push({ curso, materia, dif, texto: limpiar(m[1]), opciones: [], correcta: -1, donde: `${archivo}:${i + 1}` });
+    else if ((m = l.match(/^\s+- [A-D]\)\s*(.*)$/))) {
+      const p = ps.at(-1)!;
+      let o = m[1];
+      const marca = o.match(/\s*\(Correcta(?:\s*-\s*[^)]*)?\)\s*$/);
+      if (marca) { p.correcta = p.opciones.length; o = o.slice(0, marca.index); }
+      p.opciones.push(limpiar(o));
+    }
+  });
+}
 
 for (const p of ps) {
-  if (!p.materia || p.opciones.length !== 4 || p.correcta < 0) throw new Error(`Línea ${p.linea}: pregunta mal formada`);
+  if (!p.curso || !p.materia || p.opciones.length !== 4 || p.correcta < 0) throw new Error(`${p.donde}: pregunta mal formada`);
   // Nota: paréntesis final solo en la correcta → fuera.
   const nota = finalEntreParentesis(p.opciones[p.correcta]);
   if (nota && !p.opciones.some((o, i) => i !== p.correcta && finalEntreParentesis(o))) p.opciones[p.correcta] = nota[0];
 }
 
 const q = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-const lineas = ps.map(p => {
-  const args = [`Subject.${p.materia}`, `'${p.dif}'`, q(p.texto), `[${p.opciones.map(q).join(', ')}]`, String(p.correcta)];
-  return `  createQ(${args.join(', ')}),`;
+const linea = (p: P) => `    createQ(${[`Subject.${p.materia}`, `'${p.dif}'`, q(p.texto), `[${p.opciones.map(q).join(', ')}]`, String(p.correcta)].join(', ')}),`;
+
+writeFileSync('data/preguntas/generadas.ts', `import { Question, Subject } from '../../types';
+
+// GENERADO: no editar. Para cambiar preguntas, editar data/preguntas/fuentes/*.md y volver a generar:
+//   npx tsx scripts/importar-preguntas.ts
+const createQ = (s: Subject, d: 'explorer' | 'boss', t: string, o: string[], c: number): Question => ({
+    subject: s, difficulty: d, text: t, options: o, correctIndex: c, explanation: ''
 });
 
-writeFileSync(`data/preguntas/c${curso}.ts`, `import { Question, Subject } from '../../types';
-
-// Generado con scripts/importar-preguntas.ts desde la «Batería Maestra de 300 Preguntas - ${curso}º Primaria» de Javi.
-// Para cambiar preguntas: editar data/preguntas/fuentes/c${curso}.md y volver a generar:
-//   npx tsx scripts/importar-preguntas.ts data/preguntas/fuentes/c${curso}.md ${curso}
-const createQ = (s: Subject, d: 'explorer' | 'boss', t: string, o: string[], c: number, e: string = ""): Question => ({
-    subject: s, difficulty: d, text: t, options: o, correctIndex: c, explanation: e
-});
-
-export const C${curso}: Question[] = [
-${lineas.join('\n')}
-];
+export const GENERADAS: Record<3 | 4 | 5 | 6, Question[]> = {
+${[3, 4, 5, 6].map(c => `  ${c}: [\n${ps.filter(p => p.curso === c).map(linea).join('\n')}\n  ],`).join('\n')}
+};
 `);
-console.log(`c${curso}.ts: ${ps.length} preguntas`);
+for (const c of [3, 4, 5, 6]) console.log(`${c}º: ${ps.filter(p => p.curso === c).length} preguntas`);
