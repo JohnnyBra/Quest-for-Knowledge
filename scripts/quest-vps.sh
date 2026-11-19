@@ -32,12 +32,23 @@ devolver_ranking() {
 
 actualizar() {
   echo "== Actualizando Quest en $APP_DIR"
+  if ! node -e "require('node:sqlite')" 2>/dev/null; then
+    echo "  ✘ Este Node ($(node --version 2>/dev/null)) no trae node:sqlite; hace falta Node ≥ 22.13. Antes de nada:"
+    echo "    export PATH=~/.nvm/versions/node/v22.23.3/bin:\$PATH"
+    exit 1
+  fi
   mkdir -p copias
   local copia="copias/db-$(date +%F-%H%M).json"
   if [[ -f db.json ]]; then
     cp db.json "$copia"
     echo "  ✔ Copia del ranking: $copia"
   fi
+  if [[ -f quest.db ]]; then
+    local copia_db="copias/quest-$(date +%F-%H%M%S).db"
+    node -e "new (require('node:sqlite').DatabaseSync)('quest.db').exec(\"VACUUM INTO '$copia_db'\")"
+    echo "  ✔ Copia de la base de datos: $copia_db"
+  fi
+  grep -q '^QUEST_INVITACION=' .env 2>/dev/null || echo "  ⚠ Falta QUEST_INVITACION en .env: nadie podrá darse de alta como docente"
 
   # El ranking vivo cambia con cada partida; se aparta para que no bloquee el «git pull»
   # y se devuelve después, pase lo que pase.
@@ -65,7 +76,7 @@ actualizar() {
   fi
   pm2 restart "$nombre" --update-env
   sleep 3
-  if curl -sf "http://localhost:$PUERTO/api/leaderboard" > /dev/null; then
+  if curl -sf "http://localhost:$PUERTO/api/salud" > /dev/null; then
     echo "  ✔ Quest responde en el puerto $PUERTO (proceso pm2: $nombre)"
   else
     echo "  ✘ Quest no responde en el puerto $PUERTO; revisa «pm2 logs $nombre»"
@@ -80,7 +91,7 @@ diagnostico() {
   nombre=$(proceso_pm2)
   echo "Proceso pm2: ${nombre:-no encontrado}"
   if [[ -n "$nombre" ]]; then pm2 describe "$nombre" | grep -E "status|restarts|uptime|NODE_ENV" || true; fi
-  if curl -sf "http://localhost:$PUERTO/api/leaderboard" > /dev/null; then
+  if curl -sf "http://localhost:$PUERTO/api/salud" > /dev/null; then
     echo "Responde en el puerto $PUERTO: sí"
   else
     echo "Responde en el puerto $PUERTO: NO"

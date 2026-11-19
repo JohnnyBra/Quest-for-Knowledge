@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Icono } from './RetroUI';
+import { api } from '../services/api';
 
-interface Score {
-  name: string;
-  score: number;
-  level: number;
-  date: string;
-}
+interface Score { nombre: string; puntos: number; nivel: number }
 
 interface LeaderboardProps {
   onClose: () => void;
@@ -21,9 +17,8 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [fallo, setFallo] = useState(false);
 
   useEffect(() => {
-    fetch('/api/leaderboard')
-      .then(res => res.json())
-      .then(data => setScores(Array.isArray(data) ? data : []))
+    api<Score[]>('/api/ranking')
+      .then(setScores)
       .catch(() => setFallo(true))
       .finally(() => setLoading(false));
   }, []);
@@ -33,7 +28,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       <div className="modal max-w-2xl" role="dialog" aria-modal="true" aria-labelledby="titulo-ranking" onClick={e => e.stopPropagation()}>
         <div className="modal-cabecera">
           <span className="medallon pointer-events-none"><Icono nombre="medalla" /></span>
-          <h2 id="titulo-ranking">Salón de los héroes</h2>
+          <h2 id="titulo-ranking">Salón de los héroes de la clase</h2>
           <button className="medallon" onClick={onClose} aria-label="Cerrar" autoFocus><X size={22} /></button>
         </div>
         <div className="modal-cuerpo scroll-fino">
@@ -51,9 +46,9 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
                     style={i < 3 ? { background: COPAS[i], color: '#2a1a00' } : { background: 'var(--roca)', color: 'var(--tenue)' }}>
                     {i + 1}
                   </span>
-                  <span className="flex-1 min-w-0 truncate font-bold">{s.name}</span>
-                  <span className="text-sm shrink-0" style={{ color: 'var(--tenue)' }}>Nivel {s.level}</span>
-                  <span className="titulo shrink-0 tabular-nums" style={{ color: 'var(--dorado-claro)' }}>{s.score.toLocaleString('es-ES')}</span>
+                  <span className="flex-1 min-w-0 truncate font-bold">{s.nombre}</span>
+                  <span className="text-sm shrink-0" style={{ color: 'var(--tenue)' }}>Nivel {s.nivel}</span>
+                  <span className="titulo shrink-0 tabular-nums" style={{ color: 'var(--dorado-claro)' }}>{s.puntos.toLocaleString('es-ES')}</span>
                 </li>
               ))}
             </ol>

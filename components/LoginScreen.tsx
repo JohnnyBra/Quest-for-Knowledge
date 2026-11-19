@@ -1,26 +1,53 @@
 import React, { useState } from 'react';
 import { Estandarte, Fondo } from './RetroUI';
 import { SKINS, getHeroArt } from '../heroes';
+import { api, type Yo } from '../services/api';
 
-interface LoginScreenProps {
-  onLogin: (name: string) => void;
-}
+type Modo = 'entrar' | 'registro' | 'docente' | 'docente-registro';
+type Campo = 'codigo' | 'invitacion' | 'nombre' | 'usuario' | 'clave';
 
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [name, setName] = useState('');
+const CAMPOS: Record<Modo, Campo[]> = {
+  entrar: ['usuario', 'clave'],
+  registro: ['codigo', 'nombre', 'usuario', 'clave'],
+  docente: ['usuario', 'clave'],
+  'docente-registro': ['invitacion', 'nombre', 'usuario', 'clave'],
+};
+const ETIQUETA: Record<Campo, string> = { codigo: 'Código de la clase', invitacion: 'Código de invitación', nombre: 'Tu nombre', usuario: 'Usuario', clave: 'Contraseña' };
+const TITULO: Record<Modo, string> = { entrar: 'Identifícate, héroe', registro: 'Únete a tu clase', docente: 'Entrada del maestro', 'docente-registro': 'Alta de docente' };
+const AYUDA: Record<Modo, string> = {
+  entrar: 'Escribe tu usuario y tu contraseña para seguir la aventura.',
+  registro: 'Tu maestro o maestra te dará el código de la clase. Solo se hace una vez.',
+  docente: 'Entra para ver tus clases y sus códigos.',
+  'docente-registro': 'Necesitas el código de invitación del centro.',
+};
+const EJEMPLO: Partial<Record<Campo, string>> = { codigo: 'Por ejemplo: K7M2PQ', nombre: 'Por ejemplo: Lucía', usuario: 'Por ejemplo: lucia.g' };
+
+const autocompletar = (campo: Campo, modo: Modo) =>
+  campo === 'usuario' ? 'username' : campo === 'clave' ? (modo.includes('registro') ? 'new-password' : 'current-password') : 'off';
+
+export default function LoginScreen({ onEntrar }: { onEntrar: (yo: Yo) => void }) {
+  const [modo, setModo] = useState<Modo>('entrar');
+  const [datos, setDatos] = useState<Partial<Record<Campo, string>>>({});
   const [error, setError] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const docente = modo === 'docente' || modo === 'docente-registro';
+  const alta = modo === 'registro' || modo === 'docente-registro';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const cambiar = (m: Modo) => { setModo(m); setError(''); };
+
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Escribe tu nombre para empezar.');
-      return;
+    const falta = CAMPOS[modo].find(c => !datos[c]?.trim());
+    if (falta) return setError(`Falta: ${ETIQUETA[falta].toLowerCase()}.`);
+    setEnviando(true); setError('');
+    try {
+      const ruta = modo === 'registro' ? '/api/alumno/registro' : modo === 'docente-registro' ? '/api/docente/registro' : '/api/entrar';
+      await api(ruta, { ...datos, rol: docente ? 'docente' : 'alumno' });
+      onEntrar(await api<Yo>('/api/yo'));
+    } catch (err) {
+      setError((err as Error).message);
+      setEnviando(false);
     }
-    if (name.length > 15) {
-      setError('El nombre es demasiado largo (máximo 15 letras).');
-      return;
-    }
-    onLogin(name.trim());
   };
 
   return (
@@ -42,34 +69,58 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="panel entrar w-full max-w-md mx-auto flex flex-col gap-5" noValidate>
+        <form onSubmit={enviar} className="panel entrar w-full max-w-md mx-auto flex flex-col gap-4" noValidate>
+          {!docente && (
+            <div className="pestanas" role="tablist" aria-label="Cómo quieres entrar">
+              <button type="button" role="tab" aria-selected={modo === 'entrar'} onClick={() => cambiar('entrar')}>Entrar</button>
+              <button type="button" role="tab" aria-selected={modo === 'registro'} onClick={() => cambiar('registro')}>Tengo un código de clase</button>
+            </div>
+          )}
+
           <div>
-            <h2 className="panel-titulo">Identifícate, héroe</h2>
-            <p className="text-[1.05rem]" style={{ color: 'var(--tenue)' }}>
-              El caos ha borrado el saber del mundo. Escribe tu nombre para empezar la aventura y entrar en el ranking.
-            </p>
+            <h2 className="panel-titulo">{TITULO[modo]}</h2>
+            <p className="m-0 text-[1.05rem]" style={{ color: 'var(--tenue)' }}>{AYUDA[modo]}</p>
           </div>
 
-          <label className="flex flex-col gap-2 font-semibold">
-            Tu nombre
-            <input
-              type="text"
-              name="nombre"
-              autoComplete="off"
-              spellCheck={false}
-              value={name}
-              onChange={(e) => { setName(e.target.value); setError(''); }}
-              placeholder="Por ejemplo: Lucía…"
-              className="campo"
-              aria-invalid={!!error}
-              aria-describedby="error-nombre"
-              autoFocus={typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches}
-            />
-          </label>
+          {CAMPOS[modo].map((campo, i) => (
+            <label key={`${modo}-${campo}`} className="flex flex-col gap-2 font-semibold">
+              {ETIQUETA[campo]}
+              <input
+                type={campo === 'clave' ? 'password' : 'text'}
+                name={campo}
+                className="campo"
+                autoComplete={autocompletar(campo, modo)}
+                autoCapitalize={campo === 'codigo' ? 'characters' : 'off'}
+                style={campo === 'codigo' ? { textTransform: 'uppercase' } : undefined}
+                spellCheck={false}
+                placeholder={EJEMPLO[campo] ? `${EJEMPLO[campo]}…` : undefined}
+                value={datos[campo] ?? ''}
+                onChange={e => { setDatos({ ...datos, [campo]: e.target.value }); setError(''); }}
+                aria-invalid={!!error}
+                aria-describedby="error-entrada"
+                autoFocus={i === 0 && typeof matchMedia !== 'undefined' && matchMedia('(pointer: fine)').matches}
+              />
+            </label>
+          ))}
 
-          <p id="error-nombre" role="alert" className="min-h-[1.4rem] font-bold" style={{ color: '#ff9aa6' }}>{error}</p>
+          <p id="error-entrada" role="alert" className="m-0 min-h-[1.4rem] font-bold" style={{ color: '#ff9aa6' }}>{error}</p>
 
-          <button type="submit" className="btn-oro w-full">Comenzar la aventura</button>
+          <button type="submit" className="btn-oro w-full" disabled={enviando}>
+            {enviando ? 'Un momento…' : alta ? 'Crear mi cuenta' : 'Entrar'}
+          </button>
+
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+            {docente ? (
+              <>
+                <button type="button" className="enlace" onClick={() => cambiar(modo === 'docente' ? 'docente-registro' : 'docente')}>
+                  {modo === 'docente' ? '¿Primera vez? Darme de alta' : 'Ya tengo cuenta'}
+                </button>
+                <button type="button" className="enlace" onClick={() => cambiar('entrar')}>Volver al alumnado</button>
+              </>
+            ) : (
+              <button type="button" className="enlace" onClick={() => cambiar('docente')}>Soy docente</button>
+            )}
+          </div>
 
           <p className="creditos text-center pt-3 border-t" style={{ borderColor: 'var(--borde)' }}>Creado por Javi Barrero</p>
         </form>

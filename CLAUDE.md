@@ -21,7 +21,7 @@ npm start
 bash scripts/quest-vps.sh actualizar   # or: diagnostico
 ```
 
-Set `GEMINI_API_KEY` in `.env.local` before running. (The key is injected via `vite.config.ts` as `process.env.GEMINI_API_KEY`, but the Gemini API is not currently called — all questions come from the static bank in `data/questions.ts`.)
+`.env` (optional): `QUEST_INVITACION` (teacher sign-up code) and `QUEST_DB` (default `quest.db`). The Gemini key in `vite.config.ts` is a leftover; questions come from `data/preguntas/`.
 
 `npm test` runs `tests/*.test.ts` with `tsx --test` (hero choice, map/fog logic, and that every hero, monster and item has its art in `public/arte/`).
 
@@ -50,8 +50,9 @@ App.tsx (root state machine)
 |---|---|
 | `types.ts` | All shared enums and interfaces (`GameState`, `TileType`, `Player`, `Enemy`, `Item`, `Question`, etc.) |
 | `constants.ts` | Map generators (`generateMap1`–`generateMap5`), `LEVELS` config array, `ENEMY_TEMPLATES`, `BOSS_TEMPLATE`, item templates, tile constants |
-| `services/geminiService.ts` | Question picker — filters `STATIC_QUESTIONS` by subject + difficulty, tracks asked questions globally |
-| `data/questions.ts` | Static bank of educational questions (Math, Lengua, C. del Medio, Inglés, Ed. Física) with `explorer`/`boss` difficulty tiers |
+| `services/preguntas.ts` | `Selector`: picks from the bank of the student's effective curso by subject + difficulty, no repeats per session; failed questions come back as 1 of every 3 after 3 battles (repaso) |
+| `services/api.ts`, `cola.ts`, `partida.ts` | API client, offline-safe answer queue, current game (start/answers/finish) |
+| `data/preguntas/` | One bank per curso (`c3.ts`…`c6.ts`, 200 each: 5 subjects × `explorer`/`boss`); `index.ts` gives ids `c<curso>-<materia>-<FNV hash of text>` and `bateria(curso)` |
 | `data/narrative.ts` | Story text shown in the NARRATIVE state |
 | `server.ts` | Express server: `/api/leaderboard` (GET) and `/api/score` (POST) backed by `db.json` flat-file; also mounts Vite dev middleware |
 | `components/CanvasMapView.tsx` | Canvas renderer: painted floor/wall textures per theme, objects, smooth movement, lantern light, 3-layer fog, particles; arrow keys + touch D-pad |
@@ -81,7 +82,7 @@ Enemy movement runs on a `setInterval` inside a `useEffect`. To read current pla
 
 Battles are triggered in `App.tsx` and handed off to `Battle.tsx`. The flow:
 1. Player selects a **subject** (enemies have a `weakness: Subject` for bonus damage)
-2. `generateEducationalContent()` picks a question from `STATIC_QUESTIONS` filtered by subject + difficulty (`explorer` for regular enemies, `boss` for boss). A module-level `globalAskedQuestions` Set tracks seen questions across the whole session (never reset between battles).
+2. `selector.elegir()` (`services/preguntas.ts`) picks a question of the effective curso by subject + difficulty (`explorer` for regular enemies, `boss` for boss); every answer (also timeouts and both crit questions) is sent with `enviarRespuesta`.
 3. 15 s ATB countdown — timeout counts as wrong
 4. Correct answer → player attacks enemy; wrong → enemy attacks player
 5. If `player.stats.critChance > 0`, a second harder question is posed before the crit resolves
@@ -119,12 +120,13 @@ Battles are triggered in `App.tsx` and handed off to `Battle.tsx`. The flow:
 - Trap/mimic enemies: `80–100 + (levelIndex + 2) × 50–60` HP
 - Boss: `300 + (levelIndex + 1) × 50` HP
 
-### Leaderboard / persistence
+### Accounts / persistence (`servidor/`)
 
-- Scores saved to `db.json` (flat file) via `/api/score` POST on defeat or victory
-- Only personal best is kept per player name
-- `/api/leaderboard` returns all scores sorted descending
+- SQLite through the built-in `node:sqlite` (`servidor/db.ts`, file `quest.db` or `QUEST_DB`); all `/api` routes in `servidor/app.ts` (`crearApp(db, { invitacion })`), `server.ts` only adds Vite/`dist` and listens. Tests run it against `:memory:`.
+- Teachers sign up with the invitation code `QUEST_INVITACION` (`.env`, read with `process.loadEnvFile`) and create classes (curso 3–6, 6-letter code). Students sign up once with the class code and log in with usuario + contraseña; session = `quest` httpOnly cookie.
+- Each answer goes to `POST /api/respuestas` (curso, materia, texto taken from the bank on the server); `GET /api/yo` returns the student's effective curso (`curso_propio ?? clase.curso`) and pending (failed, never right) question ids. Ranking is per class (best game per student). The old `db.json` ranking is kept as an archive, unused.
+- `npm start` = `tsx server.ts` (`tsx` is a runtime dependency: the server imports the question banks, which use `enum`).
 
 ### Environment
 
-`GEMINI_API_KEY` is read from `.env.local` and injected at build time by `vite.config.ts`. The `@google/genai` SDK is imported in `geminiService.ts` but the API is never called — questions are served entirely from `STATIC_QUESTIONS`.
+`GEMINI_API_KEY` is read from `.env.local` and injected at build time by `vite.config.ts`. The Gemini API is not used: questions come from `data/preguntas/`.

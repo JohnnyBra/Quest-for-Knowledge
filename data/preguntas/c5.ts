@@ -1,11 +1,11 @@
-import { Question, Subject } from '../types';
+import { Question, Subject } from '../../types';
 
 // Helper to create questions easily
 const createQ = (s: Subject, d: 'explorer' | 'boss', t: string, o: string[], c: number, e: string = ""): Question => ({
     subject: s, difficulty: d, text: t, options: o, correctIndex: c, explanation: e
 });
 
-export const STATIC_QUESTIONS: Question[] = [
+export const C5: Question[] = [
   // ==========================================================
   // BLOQUE I: EL TEMPLO DE LAS PALABRAS (LENGUA)
   // ==========================================================

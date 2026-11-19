@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Player, Enemy, Question, Subject } from '../types';
-import { generateEducationalContent } from '../services/geminiService';
+import { Player, Enemy, Subject } from '../types';
+import { selector } from '../services/preguntas';
+import { enviarRespuesta } from '../services/partida';
+import type { Pregunta } from '../data/preguntas/index';
 import { Calculator, Book, Globe, MessageCircle, Dumbbell } from 'lucide-react';
 import { getHeroArt } from '../heroes';
 
@@ -16,10 +18,7 @@ type BattlePhase = 'INIT' | 'SELECT_SUBJECT' | 'GENERATING_QUESTION' | 'ANSWERIN
 
 const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onHpUpdate }) => {
   const [phase, setPhase] = useState<BattlePhase>('INIT');
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [criticalQuestion, setCriticalQuestion] = useState<Question | null>(null);
-  const [isCriticalHitTarget, setIsCriticalHitTarget] = useState(false);
-  const [answeredFirstCrit, setAnsweredFirstCrit] = useState(false);
+  const [question, setQuestion] = useState<Pregunta | null>(null);
   const [message, setMessage] = useState(`¡${enemy.name} ataca!`);
   const [enemyHp, setEnemyHp] = useState(enemy.maxHp);
   const [playerHp, setPlayerHp] = useState(player.hp);
@@ -30,6 +29,17 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
 
   const [timeLeft, setTimeLeft] = useState(15);
   const maxTime = 15;
+
+  // El temporizador llama a handleAnswer desde un cierre viejo: la pregunta en pantalla se lee de aquí.
+  const preguntaRef = useRef<Pregunta | null>(null);
+  const inicioRef = useRef(0);
+  const respondidaRef = useRef(false);
+  const criticoRef = useRef(false);   // este ataque puede ser crítico
+  const segundaRef = useRef(false);   // está en pantalla la 2ª pregunta del crítico
+  const mostrar = (q: Pregunta) => { preguntaRef.current = q; inicioRef.current = Date.now(); respondidaRef.current = false; setQuestion(q); };
+  // StrictMode monta los efectos dos veces en desarrollo: el ref evita contar dos combates.
+  const contadoRef = useRef(false);
+  useEffect(() => { if (!contadoRef.current) { contadoRef.current = true; selector.nuevoCombate(); } }, []);
 
   const [battleStats, setBattleStats] = useState({ correct: 0, incorrect: 0, superEffective: 0, timeBonus: 0 });
 
@@ -58,46 +68,37 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     }
   }, [phase]);
 
-  const handleSubjectSelect = async (subject: Subject) => {
-    setPhase('GENERATING_QUESTION');
-    setMessage(`Cargando pregunta de ${subject}...`);
-    try {
-      const isCrit = Math.random() * 100 < (player.stats.critChance || 0);
-      setIsCriticalHitTarget(isCrit);
-      setAnsweredFirstCrit(false);
+  const handleSubjectSelect = (subject: Subject) => {
+    const dificultad = enemy.isBoss ? 'boss' : 'explorer';
+    const isCrit = Math.random() * 100 < (player.stats.critChance || 0);
+    criticoRef.current = isCrit;
+    segundaRef.current = false;
 
-      const q = await generateEducationalContent(
-        enemy.isBoss ? 'boss' : 'combat',
-        subject
-      );
-      setQuestion(q);
-      
-      if (isCrit) {
-         const q2 = await generateEducationalContent(
-           enemy.isBoss ? 'boss' : 'combat',
-           subject
-         );
-         setCriticalQuestion(q2);
-      }
+    const q = selector.elegir(subject, dificultad);
+    mostrar(q);
 
-      setPhase('ANSWERING');
-      setTimeLeft(maxTime);
-      setMessage(isCrit ? `¡OPORTUNIDAD DE CRÍTICO! Pregunta 1: ${q.text}` : q.text);
-    } catch (e) {
-      setPhase('SELECT_SUBJECT');
-      setMessage("Error mágico. Intenta otra vez.");
-    }
+    setPhase('ANSWERING');
+    setTimeLeft(maxTime);
+    setMessage(isCrit ? `¡OPORTUNIDAD DE CRÍTICO! Pregunta 1: ${q.text}` : q.text);
   };
 
   const handleAnswer = (index: number, isTimeout: boolean = false) => {
-    if (!question) return;
+    const question = preguntaRef.current;
+    if (!question || respondidaRef.current) return;
+    respondidaRef.current = true;
+    const correcta = !isTimeout && index === question.correctIndex;
+    const segunda = segundaRef.current;
+    selector.apuntar(question.id, correcta);
+    enviarRespuesta(question.id, correcta, Date.now() - inicioRef.current);
 
-    if (!isTimeout && index === question.correctIndex) {
-      if (isCriticalHitTarget && !answeredFirstCrit) {
-         setAnsweredFirstCrit(true);
-         setQuestion(criticalQuestion);
+    if (correcta) {
+      if (criticoRef.current && !segunda) {
+         // La 2ª pregunta se elige ahora: si falla la 1ª, no se gasta ninguna (ni una del repaso).
+         segundaRef.current = true;
+         const q2 = selector.elegir(question.subject, enemy.isBoss ? 'boss' : 'explorer');
+         mostrar(q2);
          setTimeLeft(maxTime);
-         setMessage(`¡Correcto! Fase 2 Crítica: ${criticalQuestion!.text}`);
+         setMessage(`¡Correcto! Fase 2 Crítica: ${q2.text}`);
          return;
       }
 
@@ -113,7 +114,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         finalDamage = Math.floor(finalDamage * 1.5);
       }
       
-      if (isCriticalHitTarget && answeredFirstCrit) {
+      if (criticoRef.current && segunda) {
         finalDamage = Math.floor(finalDamage * 2.5); // CRITICAL HIT MULTIPLIER
       }
 
@@ -133,7 +134,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         setEnemyHp(newHp);
 
         const weakText = isWeakness ? " ¡Súper efectivo!" : "";
-        const critText = (isCriticalHitTarget && answeredFirstCrit) ? " ¡GOLPE CRÍTICO!" : "";
+        const critText = (criticoRef.current && segunda) ? " ¡GOLPE CRÍTICO!" : "";
         setMessage(`¡Correcto!${critText}${weakText} Daño: ${finalDamage}`);
 
         setTimeout(() => {
@@ -152,7 +153,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
         errorMsg = `Fallo... La respuesta era: ${question.options[question.correctIndex]}`;
       }
       
-      if (isCriticalHitTarget && answeredFirstCrit) {
+      if (criticoRef.current && segunda) {
          errorMsg = "¡Fallo en el golpe crítico! " + errorMsg;
       }
       setMessage(errorMsg);
