@@ -125,6 +125,38 @@ test('con Quest cerrado para su clase, el alumno ve el aviso (403) y no puede ju
   P.abierto = true;
 });
 
+test('dos alumnos con el mismo alias en clases distintas: usuarios fijos, sin renombrarse cada vez', async () => {
+  P.clases.push({ id: 4, nombre: '5ºA', codigo: 'CINCOA', curso: 5, profesor: 7 });
+  P.alumnos.push({ id: 21, alias: 'Leo', clase: 3, nombre_real: null, clave: 'x' }, { id: 22, alias: 'Leo', clase: 4, nombre_real: null, clave: 'x' });
+  const usuarios = () => (db.prepare("SELECT cuenta_id, usuario FROM alumnos WHERE nombre = 'Leo' ORDER BY cuenta_id").all() as any[]).map((a) => `${a.cuenta_id}:${a.usuario}`);
+  await profe('/api/clases');
+  const antes = usuarios();
+  assert.deepEqual(antes, ['21:Leo', '22:Leo ~22']);
+  P.sesiones.set('t-leo2', { tipo: 'alumno', id: 22 });
+  await como('t-leo2')('/api/yo');
+  await profe('/api/clases');
+  assert.deepEqual(usuarios(), antes);
+});
+
+test('si la clase baja de curso en el portal, el curso propio que ya no es menor se quita', async () => {
+  const lunaLocal = (db.prepare("SELECT id FROM alumnos WHERE usuario = 'Luna'").get() as any).id;
+  db.prepare('UPDATE alumnos SET curso_propio = 4 WHERE id = ?').run(lunaLocal);
+  P.clases.find((c) => c.id === 3)!.curso = 4;
+  assert.equal((await luna('/api/yo')).datos.curso, 4);
+  assert.equal((db.prepare('SELECT curso_propio FROM alumnos WHERE id = ?').get(lunaLocal) as any).curso_propio, null);
+  P.clases.find((c) => c.id === 3)!.curso = 5;
+});
+
+test('un docente de Quest sin unir con el mismo nombre: aviso, no se le esconde nada', async () => {
+  db.prepare("INSERT INTO docentes (nombre, usuario, clave) VALUES ('Otra', 'Ana Ruiz', 'x')").run();
+  P.profes.push({ id: 8, nombre: 'Ana Ruiz', tratamiento: null });
+  P.sesiones.set('t-ana', { tipo: 'profe', id: 8 });
+  const r = await como('t-ana')('/api/yo');
+  assert.equal(r.estado, 503);
+  assert.match(r.datos.error, /unidas/);
+  assert.equal((db.prepare("SELECT COUNT(*) AS n FROM docentes WHERE usuario = 'Ana Ruiz'").get() as any).n, 1);
+});
+
 test('salir cierra la sesión del portal', async () => {
   const r = await luna('/api/salir', {});
   assert.deepEqual(r.datos, { ok: true, entrar: 'https://juegos.ejemplo.test' });
@@ -136,4 +168,6 @@ test('con el portal caído, Quest responde 503 con un mensaje claro', async () =
   const r = await profe('/api/yo');
   assert.equal(r.estado, 503);
   assert.match(r.datos.error, /Gremio/);
+  // Salir funciona igual: la sesión del portal caducará sola.
+  assert.deepEqual((await profe('/api/salir', {})).datos, { ok: true, entrar: 'https://juegos.ejemplo.test' });
 });

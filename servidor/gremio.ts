@@ -9,8 +9,10 @@ export type Gremio = ReturnType<typeof clienteGremio>;
 type Respuesta = { estado: number; datos: any };
 
 export class SinGremio extends Error {
-  constructor() { super('No hay conexión con el Gremio del Saber. Inténtalo dentro de un momento.'); }
+  constructor(mensaje = 'No hay conexión con el Gremio del Saber. Inténtalo dentro de un momento.') { super(mensaje); }
 }
+// El portal ya no reconoce la sesión (caducó mientras se usaba): a entrar otra vez.
+export class SinSesion extends Error {}
 
 const cookieDe = (req: Request) => req.headers.cookie?.match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]*)`))?.[1] ?? '';
 
@@ -42,6 +44,10 @@ export function clienteGremio(db: Db, urlPortal: string) {
   const idLocal = (tabla: string, cuentaId: number) => (db.prepare(`SELECT id FROM ${tabla} WHERE cuenta_id = ?`).get(cuentaId) as { id: number }).id;
 
   function copiarDocente(p: { id: number; nombre: string }) {
+    // Un docente de Quest con ese nombre y sin unir: falta juntar las cuentas; apartarlo le escondería sus clases.
+    if (db.prepare('SELECT 1 FROM docentes WHERE usuario = ? AND cuenta_id IS NULL').get(p.nombre)) {
+      throw new SinGremio('Quest aún no tiene las cuentas unidas al Gremio. Avisa a Javi.');
+    }
     apartar('docentes', 'usuario', p.nombre, p.id);
     db.prepare(`INSERT INTO docentes (cuenta_id, nombre, usuario, clave) VALUES (?, ?, ?, '')
       ON CONFLICT (cuenta_id) DO UPDATE SET nombre = excluded.nombre, usuario = excluded.usuario`).run(p.id, p.nombre, p.nombre);
@@ -52,14 +58,24 @@ export function clienteGremio(db: Db, urlPortal: string) {
     db.prepare(`INSERT INTO clases (cuenta_id, docente_id, nombre, curso, codigo) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT (cuenta_id) DO UPDATE SET docente_id = excluded.docente_id, nombre = excluded.nombre, curso = excluded.curso, codigo = excluded.codigo`)
       .run(c.id, docente, c.nombre, c.curso, c.codigo);
-    return idLocal('clases', c.id);
+    const id = idLocal('clases', c.id);
+    // Bajar el curso a un alumno solo vale por debajo del de su clase: si la clase baja, lo que ya no es menor se quita.
+    db.prepare('UPDATE alumnos SET curso_propio = NULL WHERE clase_id = ? AND curso_propio >= ?').run(id, c.curso);
+    return id;
   }
   // En Quest el «nombre» sale en la clasificación: es el alias del Gremio (el nombre real solo lo ve el docente en el portal).
+  // El usuario es único en todo Quest, pero un alias solo lo es en su clase: si ya lo tiene otro, «alias ~cuenta», y
+  // cada uno conserva el suyo (sin renombrarse el uno al otro en cada petición).
   function copiarAlumno(a: { id: number; alias: string }, clase: number) {
-    apartar('alumnos', 'usuario', a.alias, a.id);
+    const ya = db.prepare('SELECT usuario FROM alumnos WHERE cuenta_id = ?').get(a.id) as { usuario: string } | undefined;
+    const conNumero = `${a.alias} ~${a.id}`;
+    const usuario = ya && (ya.usuario === a.alias || ya.usuario === conNumero) ? ya.usuario
+      : db.prepare('SELECT 1 FROM alumnos WHERE usuario = ? AND cuenta_id IS NOT ?').get(a.alias, a.id) ? conNumero : a.alias;
     db.prepare(`INSERT INTO alumnos (cuenta_id, clase_id, nombre, usuario, clave) VALUES (?, ?, ?, ?, '')
-      ON CONFLICT (cuenta_id) DO UPDATE SET clase_id = excluded.clase_id, nombre = excluded.nombre, usuario = excluded.usuario`).run(a.id, clase, a.alias, a.alias);
-    return idLocal('alumnos', a.id);
+      ON CONFLICT (cuenta_id) DO UPDATE SET clase_id = excluded.clase_id, nombre = excluded.nombre, usuario = excluded.usuario`).run(a.id, clase, a.alias, usuario);
+    const id = idLocal('alumnos', a.id);
+    db.prepare('UPDATE alumnos SET curso_propio = NULL WHERE id = ? AND curso_propio >= (SELECT curso FROM clases WHERE id = ?)').run(id, clase);
+    return id;
   }
 
   // Quién es (una consulta al portal por petición; está en la misma máquina). null = sin sesión; 'cerrado' = alumno
@@ -76,8 +92,11 @@ export function clienteGremio(db: Db, urlPortal: string) {
 
   // Las clases y alumnos del docente tal como están en el portal; lo que ya no está allí se borra de Quest
   // (con sus partidas y respuestas, como al quitar un alumno). Lo que no vino del portal no se toca.
+  // ponytail: pedir y aplicar no son atómicos; una lista lenta de antes de un alta puede quitar esa copia hasta la
+  // siguiente sincronización (solo pierde algo si el alumno jugó justo entre medias; el portal está en esta máquina).
   async function sincronizar(req: Request, docente: number) {
     const { estado, datos: clases } = await pedir(req, 'GET', '/api/clases');
+    if (estado === 401) throw new SinSesion();
     if (estado !== 200 || !Array.isArray(clases)) throw new SinGremio();
     transaccion(() => {
       const vivas = new Set<number>(), vivos = new Set<number>();

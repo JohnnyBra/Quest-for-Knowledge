@@ -58,7 +58,7 @@ export default function VistaClase({ id }: { id: number }) {
       <section className="panel">
         <h3 className="panel-titulo">Alumnado</h3>
         {alumnos.length === 0 ? (
-          <p className="m-0" style={{ color: 'var(--tenue)' }}>Nadie se ha unido todavía. Dales el código <strong>{clase.codigo}</strong> para que se registren en «Tengo un código de clase».</p>
+          <p className="m-0" style={{ color: 'var(--tenue)' }}>Nadie se ha unido todavía. Dales el código <strong>{clase.codigo}</strong> para que se den de alta con él.</p>
         ) : (
           <div className="overflow-x-auto scroll-fino">
             <table className="tabla">

@@ -25,8 +25,9 @@ const EJEMPLO: Partial<Record<Campo, string>> = { codigo: 'Por ejemplo: K7M2PQ',
 const autocompletar = (campo: Campo, modo: Modo) =>
   campo === 'usuario' ? 'username' : campo === 'clave' ? (modo.includes('registro') ? 'new-password' : 'current-password') : 'off';
 
-// cerrado: Quest aún no está abierto para la clase del alumno (cuentas del Gremio); trae la dirección del portal.
-export default function LoginScreen({ onEntrar, cerrado }: { onEntrar: (yo: Yo) => void; cerrado?: string }) {
+// aviso: en vez del formulario, un mensaje con un botón (cuentas del Gremio: Quest cerrado para la clase, portal sin contestar).
+export type Aviso = { titulo: string; texto: string; enlace: string; boton: string };
+export default function LoginScreen({ onEntrar, aviso }: { onEntrar: (yo: Yo) => void; aviso?: Aviso }) {
   const [modo, setModo] = useState<Modo>('entrar');
   const [datos, setDatos] = useState<Partial<Record<Campo, string>>>({});
   const [error, setError] = useState('');
@@ -70,11 +71,11 @@ export default function LoginScreen({ onEntrar, cerrado }: { onEntrar: (yo: Yo) 
           </div>
         </div>
 
-        {cerrado ? (
+        {aviso ? (
           <div className="panel entrar w-full max-w-md mx-auto flex flex-col gap-4 text-center">
-            <h2 className="panel-titulo">Este juego aún no está abierto</h2>
-            <p className="m-0 text-[1.05rem]" style={{ color: 'var(--tenue)' }}>Tu docente lo abrirá cuando toque. Mientras tanto, elige otro en el Gremio del Saber.</p>
-            <a className="btn-oro w-full no-underline" href={cerrado}>Volver al Gremio</a>
+            <h2 className="panel-titulo">{aviso.titulo}</h2>
+            <p className="m-0 text-[1.05rem]" style={{ color: 'var(--tenue)' }}>{aviso.texto}</p>
+            <a className="btn-oro w-full no-underline" href={aviso.enlace}>{aviso.boton}</a>
             <p className="creditos text-center pt-3 border-t" style={{ borderColor: 'var(--borde)' }}>Creado por Javi Barrero</p>
           </div>
         ) : (

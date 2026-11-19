@@ -5,7 +5,7 @@ import type { Db } from './db.ts';
 import { esHeroeValido } from '../heroes.ts';
 import { preguntaPorId, cursosConBateria } from '../data/preguntas/index.ts';
 import { cifras, porMateria, masFalladas, listasAlumno, type Fila } from './analisis.ts';
-import { clienteGremio, SinGremio } from './gremio.ts';
+import { clienteGremio, SinGremio, SinSesion } from './gremio.ts';
 
 type Rol = 'docente' | 'alumno';
 type Sesion = { rol: Rol; id: number; token: string };
@@ -60,6 +60,7 @@ export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url
   // Con el gremio, quién es se pregunta al portal en cada petición a /api; con Quest cerrado para su clase, el
   // alumno solo puede ver el aviso (/api/yo) y salir.
   if (gremio) app.use('/api', async (req, res, next) => {
+    if (req.path === '/salir') return next(); // salir no necesita saber quién es (y debe ir aunque el portal no conteste)
     try {
       const s = await gremio.quienEs(req);
       if (s === 'cerrado') {
@@ -145,7 +146,8 @@ export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url
   }
 
   app.post('/api/salir', async (req, res) => {
-    if (gremio) { await gremio.pedir(req, 'POST', '/api/auth/logout', {}); return void res.json({ ok: true, entrar }); }
+    // Aunque el portal no conteste, se sale (su sesión caducará sola).
+    if (gremio) { await gremio.pedir(req, 'POST', '/api/auth/logout', {}).catch(() => {}); return void res.json({ ok: true, entrar }); }
     const s = leerSesion(req);
     if (s) db.prepare('DELETE FROM sesiones WHERE token = ?').run(s.token);
     res.setHeader('Set-Cookie', 'quest=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
@@ -193,7 +195,8 @@ export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url
     if (gremio) {
       const r = await cambiar(req, 'POST', '/api/clases', { nombre, curso });
       const c = db.prepare('SELECT id FROM clases WHERE cuenta_id = ?').get(r.id) as { id: number } | undefined;
-      return void res.json({ id: c?.id ?? null, nombre, curso, codigo: r.codigo, alumnos: 0 });
+      if (!c) throw new SinGremio();
+      return void res.json({ id: c.id, nombre, curso, codigo: r.codigo, alumnos: 0 });
     }
     let codigo = nuevoCodigo();
     while (db.prepare('SELECT 1 FROM clases WHERE codigo = ?').get(codigo)) codigo = nuevoCodigo();
@@ -316,6 +319,7 @@ export function crearApp(db: Db, opciones: { invitacion?: string; gremio?: { url
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof Fallo) return res.status(err.estado).json({ error: err.message });
     if (err instanceof SinGremio) return res.status(503).json({ error: err.message });
+    if (err instanceof SinSesion) return res.status(401).json({ error: 'Tienes que entrar primero.', entrar });
     if (err?.status === 400 || err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Petición no válida.' });
     console.error(err);
     res.status(500).json({ error: 'Error del servidor. Inténtalo otra vez.' });
