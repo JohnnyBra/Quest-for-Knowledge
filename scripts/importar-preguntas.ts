@@ -1,9 +1,9 @@
 // Convierte una «Batería Maestra» de Javi (Markdown) en data/preguntas/cN.ts.
 // Uso: npx tsx scripts/importar-preguntas.ts <archivo.md> <curso>
-// Baraja las opciones (la correcta venía casi siempre en la B), pasa a la explicación el paréntesis final que solo
-// lleva la correcta, y convierte las fórmulas LaTeX en texto.
+// Quita la nota entre paréntesis de la correcta («(Correcta)», «(Correcta - …)» y el paréntesis final que solo lleva
+// ella: son notas para marcarla, no para el alumnado) y convierte las fórmulas LaTeX en texto. Las opciones las baraja
+// el juego cada vez que sale la pregunta.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { huella } from '../data/preguntas/index.ts';
 
 const [archivo, curso] = process.argv.slice(2);
 if (!archivo || !/^[346]$/.test(curso ?? '')) { console.error('Uso: importar-preguntas.ts <archivo.md> <3|4|6>'); process.exit(1); }
@@ -31,49 +31,34 @@ function finalEntreParentesis(t: string): [string, string] | null {
   return null;
 }
 
-// Barajado de Fisher-Yates con semilla (mulberry32): la misma pregunta sale siempre igual.
-function barajar<T>(v: T[], semilla: number): T[] {
-  let a = semilla >>> 0;
-  const azar = () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32; };
-  const r = [...v];
-  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(azar() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
-  return r;
-}
-
 const MATERIA = [['LENGUA', 'LANGUAGE'], ['MATEMÁTICAS', 'MATH'], ['CONOCIMIENTO DEL MEDIO', 'KNOWLEDGE']] as const;
-type P = { materia: string; dif: 'explorer' | 'boss'; texto: string; opciones: string[]; correcta: number; explicacion: string; linea: number };
+type P = { materia: string; dif: 'explorer' | 'boss'; texto: string; opciones: string[]; correcta: number; linea: number };
 const ps: P[] = [];
 let materia = '', dif: 'explorer' | 'boss' = 'explorer';
 readFileSync(archivo, 'utf8').split(/\r?\n/).forEach((l, i) => {
   let m;
   if (l.startsWith('## ')) materia = MATERIA.find(([k]) => l.toUpperCase().includes(k))?.[1] ?? '';
   else if (l.startsWith('### ')) dif = /jefe/i.test(l) ? 'boss' : 'explorer';
-  else if ((m = l.match(/^\d+\.\s+(.*)$/))) ps.push({ materia, dif, texto: limpiar(m[1]), opciones: [], correcta: -1, explicacion: '', linea: i + 1 });
+  else if ((m = l.match(/^\d+\.\s+(.*)$/))) ps.push({ materia, dif, texto: limpiar(m[1]), opciones: [], correcta: -1, linea: i + 1 });
   else if ((m = l.match(/^\s+- [A-D]\)\s*(.*)$/))) {
     const p = ps.at(-1)!;
     let o = m[1];
-    const marca = o.match(/\s*\(Correcta(?:\s*-\s*([^)]*))?\)\s*$/);
-    if (marca) { p.correcta = p.opciones.length; p.explicacion = marca[1]?.trim() ?? ''; o = o.slice(0, marca.index); }
+    const marca = o.match(/\s*\(Correcta(?:\s*-\s*[^)]*)?\)\s*$/);
+    if (marca) { p.correcta = p.opciones.length; o = o.slice(0, marca.index); }
     p.opciones.push(limpiar(o));
   }
 });
 
 for (const p of ps) {
   if (!p.materia || p.opciones.length !== 4 || p.correcta < 0) throw new Error(`Línea ${p.linea}: pregunta mal formada`);
-  // Pista: paréntesis final solo en la correcta → a la explicación.
-  const pista = finalEntreParentesis(p.opciones[p.correcta]);
-  if (pista && !p.opciones.some((o, i) => i !== p.correcta && finalEntreParentesis(o))) {
-    p.opciones[p.correcta] = pista[0];
-    p.explicacion = [pista[1], p.explicacion].filter(Boolean).join('. ');
-  }
+  // Nota: paréntesis final solo en la correcta → fuera.
+  const nota = finalEntreParentesis(p.opciones[p.correcta]);
+  if (nota && !p.opciones.some((o, i) => i !== p.correcta && finalEntreParentesis(o))) p.opciones[p.correcta] = nota[0];
 }
 
 const q = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 const lineas = ps.map(p => {
-  const orden = barajar([0, 1, 2, 3], parseInt(huella(p.texto), 16));
-  const opciones = orden.map(i => p.opciones[i]);
-  const args = [`Subject.${p.materia}`, `'${p.dif}'`, q(p.texto), `[${opciones.map(q).join(', ')}]`, String(orden.indexOf(p.correcta))];
-  if (p.explicacion) args.push(q(p.explicacion));
+  const args = [`Subject.${p.materia}`, `'${p.dif}'`, q(p.texto), `[${p.opciones.map(q).join(', ')}]`, String(p.correcta)];
   return `  createQ(${args.join(', ')}),`;
 });
 

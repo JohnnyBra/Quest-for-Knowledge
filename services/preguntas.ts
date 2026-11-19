@@ -27,7 +27,10 @@ export class Selector {
       : todas;
     const q = grupo[Math.floor(this.azar() * grupo.length)];
     this.vistas.set(q.id, this.combate);
-    return q;
+    // Opciones barajadas cada vez (en el repaso no vale acordarse de la posición).
+    const orden = q.options.map((_, i) => i);
+    for (let i = orden.length - 1; i > 0; i--) { const j = Math.floor(this.azar() * (i + 1)); [orden[i], orden[j]] = [orden[j], orden[i]]; }
+    return { ...q, options: orden.map(i => q.options[i]), correctIndex: orden.indexOf(q.correctIndex) };
   }
 
   // Como en el servidor: pendiente = fallada y nunca acertada. Lo acertado antes de esta sesión no lo sabe el

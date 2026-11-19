@@ -147,8 +147,7 @@ const Battle: React.FC<BattleProps> = ({ player, enemy, onVictory, onDefeat, onH
     } else {
       setBattleStats(s => ({ ...s, incorrect: s.incorrect + 1 }));
       let errorMsg = "";
-      const solucion = question.options[question.correctIndex] + (question.explanation ? ` (${question.explanation})` : '');
-      errorMsg = `${isTimeout ? '¡Se acabó el tiempo!' : 'Fallo...'} La respuesta era: ${solucion}`;
+      errorMsg = `${isTimeout ? '¡Se acabó el tiempo!' : 'Fallo...'} La respuesta era: ${question.options[question.correctIndex]}`;
       
       if (criticoRef.current && segunda) {
          errorMsg = "¡Fallo en el golpe crítico! " + errorMsg;

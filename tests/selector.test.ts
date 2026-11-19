@@ -70,3 +70,16 @@ test('materias del curso: 3º sin Inglés ni EF; los monstruos solo son débiles
   assert.deepEqual(monstruosPosibles(P, 2, new Selector(5, new Set()).materias()), [0, 1, 2]);
   assert.deepEqual(monstruosPosibles(P, 0, new Selector(5, new Set()).materias()), [0]); // mapa 1: sin Inglés ni EF
 });
+
+test('las opciones se barajan cada vez que sale la pregunta, sin perder la correcta', () => {
+  const s = new Selector(3, new Set());
+  const posiciones = new Map<string, Set<number>>();
+  for (let i = 0; i < 200; i++) {
+    const q = s.elegir(Subject.LANGUAGE, 'boss'); // 25 preguntas: cada una sale varias veces
+    const original = bateria(3).find(o => o.id === q.id)!;
+    assert.equal(q.options[q.correctIndex], original.options[original.correctIndex]);
+    assert.deepEqual([...q.options].sort(), [...original.options].sort());
+    posiciones.set(q.id, (posiciones.get(q.id) ?? new Set()).add(q.correctIndex));
+  }
+  assert.ok([...posiciones.values()].every(p => p.size > 1), 'una misma pregunta cambia de posición');
+});

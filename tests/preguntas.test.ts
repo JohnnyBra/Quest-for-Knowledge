@@ -44,22 +44,23 @@ for (const curso of [3, 4, 6] as const) test(`${curso}º: 300 preguntas, 75 + 25
   assert.deepEqual(materiasDe(curso), [Subject.MATH, Subject.LANGUAGE, Subject.KNOWLEDGE]);
 });
 
-test('convertidas: sin LaTeX, negritas ni marcas de correcta, y la correcta no siempre es la misma letra', () => {
+test('convertidas: sin LaTeX, negritas ni marcas de correcta', () => {
   for (const curso of [3, 4, 6] as const) {
     const b = bateria(curso);
     for (const q of b) for (const t of [q.text, ...q.options]) {
       assert.doesNotMatch(t, /\$|\\|\*\*|\(Correcta/, t);
       assert.ok(t.trim().length > 0, q.text);
     }
-    const porLetra = [0, 1, 2, 3].map(i => b.filter(q => q.correctIndex === i).length);
-    assert.ok(Math.min(...porLetra) > 40, `${curso}º: ${porLetra}`);
   }
 });
 
-test('la pista entre paréntesis de la correcta pasa a la explicación', () => {
+test('la nota entre paréntesis de la correcta (era para marcarla) no llega al juego', () => {
   const q = bateria(3).find(q => q.text.includes('sílabas tiene la palabra "mariposa"'))!;
   assert.equal(q.options[q.correctIndex], '4 sílabas');
-  assert.equal(q.explanation, 'ma-ri-po-sa');
+  assert.equal(q.explanation, '');
+  const h = bateria(4).find(q => q.options.includes('Herbir'))!;
+  assert.equal(h.options[h.correctIndex], 'Herbir');
+  assert.equal(h.explanation, '');
 });
 
 test('5º conserva sus cinco materias', () => {
