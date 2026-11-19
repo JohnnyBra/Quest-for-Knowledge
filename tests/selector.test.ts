@@ -72,7 +72,8 @@ test('materias del curso: 3º sin Inglés ni EF; los monstruos solo son débiles
 });
 
 test('las opciones se barajan cada vez que sale la pregunta, sin perder la correcta', () => {
-  const s = new Selector(3, new Set());
+  let semilla = 7; // azar fijo (LCG) para que la prueba no dependa de la suerte
+  const s = new Selector(3, new Set(), () => (semilla = (semilla * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
   const posiciones = new Map<string, Set<number>>();
   for (let i = 0; i < 200; i++) {
     const q = s.elegir(Subject.LANGUAGE, 'boss'); // 25 preguntas: cada una sale varias veces

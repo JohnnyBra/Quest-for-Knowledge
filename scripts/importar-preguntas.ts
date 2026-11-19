@@ -12,13 +12,13 @@ const SUPER: Record<string, string> = { '2': '²', '3': '³', '4': '⁴' };
 const latex = (t: string) => t.replace(/\$([^$]*)\$/g, (_, f: string) => f
   .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2')
   .replace(/\\sqrt\{([^}]*)\}/g, '√$1')
-  .replace(/\\widehat\{([^}]*)\}/g, '$1̂')
+  .replace(/\\widehat\{([^}]*)\}/g, '$1 periódico')
   .replace(/\\text\{([^}]*)\}/g, '$1')
-  .replace(/\^\\circ/g, '°').replace(/\^\{?([234])\}?/g, (_, d) => SUPER[d])
+  .replace(/\^\\circ/g, '°').replace(/\^\{?([234])\}?/g, (_, d) => SUPER[d]).replace(/_\{?2\}?/g, '₂')
   .replace(/\\times/g, '×').replace(/\\div/g, '÷').replace(/\\pi/g, 'π').replace(/\\neq/g, '≠').replace(/\\approx/g, '≈')
   .replace(/\\_/g, '_').replace(/\\ /g, ' ')
   .replace(/\s+/g, ' ').trim());
-const limpiar = (t: string) => latex(t).replace(/\*\*/g, '').trim();
+const limpiar = (t: string) => latex(t).replace(/\*/g, '').trim(); // negritas y cursivas de Markdown
 
 // Paréntesis final equilibrado: «texto (pista)» → ['texto', 'pista'].
 function finalEntreParentesis(t: string): [string, string] | null {

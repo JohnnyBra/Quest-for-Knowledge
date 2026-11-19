@@ -148,6 +148,14 @@ test('respuestas: se guardan con datos de la batería; pendientes y repaso', asy
   assert.deepEqual((await a('/api/yo')).datos.pendientes, []);
 });
 
+test('pendientes: solo las del curso que juega ahora (las de otro curso ya no pueden salir)', async () => {
+  const { clase } = await docenteConClase(6);
+  const a = await alumnoEn(clase.codigo);
+  const { datos: { id: partida } } = await a('/api/partidas', {});
+  for (const q of [bateria(5)[0], bateria(6)[0]]) await a('/api/respuestas', { partida_id: partida, pregunta_id: q.id, correcta: false, ms: 1 });
+  assert.deepEqual((await a('/api/yo')).datos.pendientes, [bateria(6)[0].id]);
+});
+
 test('no se responde ni se cierra la partida de otro', async () => {
   const { clase } = await docenteConClase();
   const a = await alumnoEn(clase.codigo), b = await alumnoEn(clase.codigo);

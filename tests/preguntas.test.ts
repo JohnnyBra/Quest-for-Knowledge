@@ -48,7 +48,7 @@ test('convertidas: sin LaTeX, negritas ni marcas de correcta', () => {
   for (const curso of [3, 4, 6] as const) {
     const b = bateria(curso);
     for (const q of b) for (const t of [q.text, ...q.options]) {
-      assert.doesNotMatch(t, /\$|\\|\*\*|\(Correcta/, t);
+      assert.doesNotMatch(t, /\$|\\|\*|_\d|\(Correcta/, t);
       assert.ok(t.trim().length > 0, q.text);
     }
   }
@@ -61,6 +61,17 @@ test('la nota entre paréntesis de la correcta (era para marcarla) no llega al j
   const h = bateria(4).find(q => q.options.includes('Herbir'))!;
   assert.equal(h.options[h.correctIndex], 'Herbir');
   assert.equal(h.explanation, '');
+});
+
+test('respuestas que la nota no debe recortar, y ninguna pregunta con dos opciones iguales de valor', () => {
+  const correcta = (c: 3 | 4 | 6, trozo: string) => { const q = bateria(c).find(q => q.text.includes(trozo))!; return q.options[q.correctIndex]; };
+  assert.equal(correcta(4, 'función cumple "los diplomas"'), 'Complemento directo');
+  assert.equal(correcta(4, 'parasintética'), 'Una palabra derivada con prefijo sub- y sufijo -ino');
+  assert.equal(correcta(3, 'ordinal 4º'), 'Cuarto');
+  assert.equal(correcta(6, 'periódico resulta de dividir 1 ÷ 3'), '0,3 periódico');
+  const laplace = bateria(6).find(q => q.text.includes('NO sacar una bola azul'))!;
+  assert.ok(!laplace.options.includes('5/10'));
+  assert.ok(bateria(6).some(q => q.text.includes('CO₂') || q.options.some(o => o.includes('CO₂'))));
 });
 
 test('5º conserva sus cinco materias', () => {

@@ -130,8 +130,9 @@ export function crearApp(db: Db, opciones: { invitacion?: string } = {}) {
     }
     const a = db.prepare(`SELECT a.nombre, a.usuario, c.nombre AS clase, COALESCE(a.curso_propio, c.curso) AS curso, a.heroe
       FROM alumnos a JOIN clases c ON c.id = a.clase_id WHERE a.id = ?`).get(s!.id) as any;
-    const pendientes = (db.prepare(`SELECT pregunta_id FROM respuestas WHERE alumno_id = ?
-      GROUP BY pregunta_id HAVING MAX(correcta) = 0 ORDER BY MIN(id)`).all(s!.id) as any[]).map(f => f.pregunta_id);
+    // Solo las del curso que juega ahora: las de otro curso ya no pueden salir en el repaso.
+    const pendientes = (db.prepare(`SELECT pregunta_id FROM respuestas WHERE alumno_id = ? AND curso = ?
+      GROUP BY pregunta_id HAVING MAX(correcta) = 0 ORDER BY MIN(id)`).all(s!.id, a.curso) as any[]).map(f => f.pregunta_id);
     res.json({ rol: 'alumno', nombre: a.nombre, usuario: a.usuario, clase: a.clase, curso: a.curso,
       heroe: a.heroe ? JSON.parse(a.heroe) : null, pendientes });
   });
