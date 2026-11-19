@@ -342,12 +342,13 @@ test('reiniciar a un alumno borra sus partidas y respuestas; su cuenta, héroe y
   const u = unico('reinicio');
   const a = await alumnoEn(clase.codigo, u);
   const b = await alumnoEn(clase.codigo);
-  await a('/api/yo/heroe', { heroe: 'guerrero' }, 'PUT');
+  assert.equal((await a('/api/yo/heroe', { skin: 'mago', genero: 'chica' }, 'PUT')).estado, 200);
   await responder(a, [[0, false], [1, true]]);
   await responder(b, [[0, true]]);
   const id = (db.prepare('SELECT id FROM alumnos WHERE usuario = ?').get(u) as any).id;
   await profe(`/api/alumnos/${id}`, { curso: 5 }, 'PUT');
   const heroe = (db.prepare('SELECT heroe FROM alumnos WHERE id = ?').get(id) as any).heroe;
+  assert.ok(heroe);
   const { profe: otro } = await docenteConClase();
   assert.equal((await otro(`/api/alumnos/${id}/reiniciar`, {})).estado, 404);
   assert.equal((await a(`/api/alumnos/${id}/reiniciar`, {})).estado, 403);
